@@ -1,141 +1,147 @@
-# 🚀 AI阅读助手 - 快速启动指南
+# ⚡ Quick Start Guide
 
-## ✨ 现在你可以真正阅读PDF了！
+**Get your AI Reading Assistant running in under 5 minutes!**
 
-我已经为你的AI阅读助手添加了完整的PDF阅读功能！现在你可以：
+## 🚀 Installation
 
-### 📚 主要功能
-- ✅ **PDF阅读器** - 完整的PDF查看体验
-- ✅ **文件上传** - 支持PDF、EPUB、MOBI格式
-- ✅ **笔记记录** - 在阅读过程中添加笔记
-- ✅ **高亮标记** - 选择文本进行高亮
-- ✅ **进度跟踪** - 自动记录阅读进度
-- ✅ **缩放旋转** - 支持页面缩放和旋转
+### Prerequisites
+- Node.js 18+ installed on your system
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
-## 🎯 如何开始使用
-
-### 1. 启动应用
+### Option 1: Use the Start Script (Recommended)
 ```bash
-cd reading-assistant-app
+git clone https://github.com/aezizhu/ai-reading-assistant.git
+cd ai-reading-assistant
+chmod +x start.sh
+./start.sh
+```
+
+### Option 2: Manual Setup
+```bash
+git clone https://github.com/aezizhu/ai-reading-assistant.git
+cd ai-reading-assistant
+npm install
 npm run dev
 ```
 
-### 2. 访问应用
-- **主应用**: http://localhost:3000
-- **演示页面**: http://localhost:3000/demo
-- **测试页面**: http://localhost:3000/test
+## 🎯 First Steps
 
-### 3. 添加书籍
-1. 点击"添加书籍"按钮
-2. 填写书籍信息（标题、作者）
-3. 选择PDF文件
-4. 确认添加
+### 1. Add Your First Book
+1. Click the **"Add Book"** button in the top-right corner
+2. Fill in the book title and author
+3. Upload a PDF, EPUB, or MOBI file
+4. Click **"Add Book"** to save
 
-### 4. 开始阅读
-1. 在书库中找到你的书籍
-2. 点击"开始阅读"按钮
-3. 享受完整的阅读体验！
+### 2. Start Reading
+1. Click the **eye icon** (👁️) on any book to open the PDF reader
+2. Use the navigation controls to move between pages
+3. Click and drag to select text for highlighting
+4. Use the **zoom controls** to adjust the view
 
-## 🔧 阅读器功能
+### 3. Take Smart Notes
+1. While reading, select text and click **"Add Highlight"**
+2. Choose a highlight color and add optional notes
+3. Access all your notes in the **"Notes"** tab
+4. Export your notes anytime using the export button
 
-### 基本操作
-- **翻页**: 使用左右箭头按钮
-- **缩放**: 使用+/-按钮调整大小
-- **旋转**: 点击旋转按钮旋转页面
-- **进度**: 自动保存阅读进度
+### 4. Set Reading Goals
+1. Navigate to the **"Reading Goals"** tab
+2. Click **"New Goal"** to create a target
+3. Select a book and set your daily reading target
+4. Track your progress automatically
 
-### 高级功能
-- **文本选择**: 选择文本进行高亮
-- **添加笔记**: 在任意页面添加笔记
-- **高亮标记**: 支持多种颜色选择
-- **笔记类型**: 笔记、总结、问题、洞察
+### 5. Chat with AI
+1. Go to the **"AI Companion"** tab
+2. Select the book you're currently reading
+3. Ask questions about the content
+4. Request summaries or mind maps
 
-## 📱 界面说明
+## 🌍 Language Switching
 
-### 阅读器界面
-- **顶部栏**: 书籍信息、笔记按钮、下载按钮
-- **导航栏**: 翻页控制、缩放控制、旋转控制
-- **阅读区**: PDF显示区域，支持文本选择
-- **高亮菜单**: 选择文本后自动显示
-- **笔记弹窗**: 添加笔记的模态框
+Change the interface language anytime:
+1. Click the **language switcher** (🌐) in the top-right
+2. Choose from English, Chinese, or Spanish
+3. The interface updates instantly without page reload
 
-### 快捷键支持
-- **空格键**: 下一页
-- **Shift+空格**: 上一页
-- **Ctrl++**: 放大
-- **Ctrl+-**: 缩小
-- **Ctrl+0**: 重置缩放
+## 📱 Key Features to Try
 
-## 🌟 特色功能
+### Reading Experience
+- **Zoom**: Mouse wheel or zoom buttons
+- **Navigation**: Arrow keys or navigation buttons
+- **Full Screen**: Click the reader header
+- **Rotation**: Use the rotate button for landscape PDFs
 
-### 智能进度跟踪
-- 自动记录当前页码
-- 计算阅读完成百分比
-- 保存最后阅读时间
+### Organization
+- **Filter Books**: Use the dropdown to filter by reading status
+- **Sort Options**: Sort by recent, title, or progress
+- **Search**: Use the search bar to find books quickly
 
-### 笔记系统
-- 按页面组织笔记
-- 支持多种笔记类型
-- 标签分类系统
-- 搜索和筛选功能
+### Analytics
+- **Statistics Tab**: View your reading habits and progress
+- **Goal Tracking**: Monitor daily and long-term targets
+- **Export Data**: Download your reading statistics
 
-### 高亮系统
-- 多种颜色选择
-- 可添加高亮笔记
-- 按页面和颜色分类
+## 🔧 Troubleshooting
 
-## 🚨 注意事项
+### Common Issues
 
-### 文件支持
-- **PDF**: 完全支持，包括文本选择
-- **EPUB**: 基础支持（需要额外配置）
-- **MOBI**: 基础支持（需要额外配置）
+**PDF not loading?**
+- Ensure the file is a valid PDF
+- Check that the file size is reasonable (< 100MB recommended)
+- Try refreshing the page
 
-### 浏览器兼容性
-- Chrome/Edge: 完全支持
-- Firefox: 完全支持
-- Safari: 基础支持
+**Language not switching?**
+- The language preference is saved locally
+- Clear browser cache if issues persist
 
-### 文件大小限制
-- 建议文件大小: < 100MB
-- 最大支持: 500MB（取决于浏览器）
+**Performance slow?**
+- Close other browser tabs for better performance
+- Ensure adequate system memory is available
 
-## 🔄 下一步计划
+### Browser Requirements
+- **JavaScript**: Must be enabled
+- **Local Storage**: Required for saving data
+- **File Access**: Allow file uploads when prompted
 
-### 即将添加的功能
-1. **EPUB阅读器** - 完整的EPUB支持
-2. **MOBI阅读器** - Kindle格式支持
-3. **云端同步** - 数据云端备份
-4. **AI总结** - 自动生成章节总结
-5. **思维导图** - 可视化知识结构
+## 📚 Sample Content
 
-### 性能优化
-1. **懒加载** - 大文件分页加载
-2. **缓存系统** - 提高加载速度
-3. **离线支持** - PWA功能
+Want to test the app quickly? The demo page includes:
+- Sample books with realistic progress
+- Pre-filled notes and highlights
+- Example reading goals
+- Mock AI conversations
 
-## 🆘 常见问题
+Access the demo at: `http://localhost:3000/demo`
 
-### Q: PDF无法加载？
-A: 检查文件格式是否正确，确保是有效的PDF文件
+## 🎓 Pro Tips
 
-### Q: 文本无法选择？
-A: 确保PDF包含文本层，扫描版PDF可能无法选择文本
+### Productivity Hacks
+1. **Set Realistic Goals**: Start with 10-20 pages per day
+2. **Use Categories**: Organize notes by type (summary, question, insight)
+3. **Regular Exports**: Back up your notes and highlights weekly
+4. **AI Assistant**: Ask for chapter summaries to review content
 
-### Q: 阅读进度丢失？
-A: 数据保存在浏览器本地存储中，清除浏览器数据会丢失进度
+### Organization Tips
+1. **Consistent Naming**: Use clear, descriptive book titles
+2. **Tag System**: Use consistent tags for easy searching
+3. **Goal Strategy**: Break large books into smaller daily targets
+4. **Progress Tracking**: Check your stats weekly for motivation
 
-### Q: 如何导出笔记？
-A: 在笔记管理页面点击"导出"按钮
+## 🔗 Useful Links
 
-## 🎉 开始你的阅读之旅！
+- **Full Documentation**: `README.md`
+- **GitHub Repository**: https://github.com/aezizhu/ai-reading-assistant
+- **Project Summary**: `PROJECT_SUMMARY.md`
+- **GitHub Setup**: `GITHUB_SETUP.md`
 
-现在你的AI阅读助手已经具备了完整的PDF阅读功能！你可以：
+## ❓ Need Help?
 
-1. **上传你的PDF文件**
-2. **开始阅读体验**
-3. **记录重要笔记**
-4. **标记关键内容**
-5. **跟踪阅读进度**
+- **Issues**: Report bugs on GitHub
+- **Questions**: Check the FAQ in the main README
+- **Feature Requests**: Open a discussion on GitHub
 
-**享受智能化的阅读体验吧！** 📚✨
+---
+
+**🚀 Happy Reading with AI Reading Assistant!**
+
+*Created by [aezizhu](https://github.com/aezizhu) - Transform your reading experience today.*
