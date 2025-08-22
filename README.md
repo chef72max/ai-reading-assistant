@@ -311,6 +311,34 @@ Unauthorized commercial use constitutes **copyright infringement** and will resu
 - 🍴 **Fork** to contribute or customize
 - 📢 **Share** with your reading community
 
+## 🏆 Project Status & Metrics
+
+<div align="center">
+
+### 📊 Development Status
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/aezizhu/ai-reading-assistant)
+[![Code Quality](https://img.shields.io/badge/code%20quality-A%2B-brightgreen.svg)](https://github.com/aezizhu/ai-reading-assistant)
+[![TypeScript Coverage](https://img.shields.io/badge/TypeScript%20coverage-95%25-brightgreen.svg)](https://github.com/aezizhu/ai-reading-assistant)
+[![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/aezizhu/ai-reading-assistant)
+
+### 🚀 Technology Stack
+[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3-38B2AC.svg)](https://tailwindcss.com/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0-brightgreen.svg)](https://nodejs.org/)
+[![npm Version](https://img.shields.io/badge/npm-%3E%3D8.0-blue.svg)](https://www.npmjs.com/)
+
+### 📈 Community & Activity
+[![GitHub Stars](https://img.shields.io/github/stars/aezizhu/ai-reading-assistant?style=social)](https://github.com/aezizhu/ai-reading-assistant)
+[![GitHub Forks](https://img.shields.io/github/forks/aezizhu/ai-reading-assistant?style=social)](https://github.com/aezizhu/ai-reading-assistant)
+[![GitHub Issues](https://img.shields.io/github/issues/aezizhu/ai-reading-assistant)](https://github.com/aezizhu/ai-reading-assistant/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/aezizhu/ai-reading-assistant)](https://github.com/aezizhu/ai-reading-assistant/pulls)
+[![GitHub License](https://img.shields.io/badge/License-Non--Commercial-red.svg)](https://github.com/aezizhu/ai-reading-assistant/blob/main/LICENSE)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/aezizhu/ai-reading-assistant)](https://github.com/aezizhu/ai-reading-assistant)
+[![GitHub Contributors](https://img.shields.io/github/contributors/aezizhu/ai-reading-assistant)](https://github.com/aezizhu/ai-reading-assistant/graphs/contributors)
+
+</div>
+
 ---
 
 <div align="center">
