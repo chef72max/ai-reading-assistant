@@ -98,13 +98,19 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         ...prev,
         title: parsedInfo.title || prev.title,
         author: parsedInfo.author || prev.author,
-        filePath: file.name,
+        filePath: '', // 先清空，等创建blob URL后再设置
         fileType: getFileType(file.name)
       }))
       
       // 创建文件URL用于预览
       const url = createFileURL(file)
       setFileURL(url)
+      
+      // 设置blob URL作为文件路径
+      setFormData(prev => ({
+        ...prev,
+        filePath: url
+      }))
       
       // 如果成功解析到信息，显示提示
       if (parsedInfo.title && parsedInfo.author) {

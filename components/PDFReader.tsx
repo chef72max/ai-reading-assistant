@@ -190,13 +190,39 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             // 不在这里设置loading为false，让具体的渲染组件处理
           } else {
             console.error('转换blob URL失败')
-            setError(t('reader.loadError'))
-            setLoading(false)
+            // 尝试使用文件类型作为fallback
+            if (book.fileType) {
+              console.log('使用book.fileType作为fallback:', book.fileType)
+              setCurrentFormat(book.fileType)
+              // 对于PDF，尝试直接使用blob URL
+              if (book.fileType === 'pdf') {
+                setFileContent(book.filePath)
+              } else {
+                setError(t('reader.loadError'))
+                setLoading(false)
+              }
+            } else {
+              setError(t('reader.loadError'))
+              setLoading(false)
+            }
           }
         } catch (error) {
           console.error('转换blob URL过程中出错:', error)
-          setError(t('reader.loadError'))
-          setLoading(false)
+          // 尝试使用文件类型作为fallback
+          if (book.fileType) {
+            console.log('使用book.fileType作为fallback:', book.fileType)
+            setCurrentFormat(book.fileType)
+            // 对于PDF，尝试直接使用blob URL
+            if (book.fileType === 'pdf') {
+              setFileContent(book.filePath)
+            } else {
+              setError(t('reader.loadError'))
+              setLoading(false)
+            }
+          } else {
+            setError(t('reader.loadError'))
+            setLoading(false)
+          }
         }
       } else {
         console.log('使用直接文件路径:', book.filePath)
@@ -206,7 +232,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
     
     loadEBook()
-  }, [book.filePath, t, book.originalFileName])
+  }, [book.filePath, t, book.originalFileName, book.fileType])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log('PDF加载成功，页数:', numPages)
