@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Upload, FileText, User, BookOpen } from 'lucide-react'
 import { useReadingStore } from '@/lib/store'
-import { validateFile, createFileURL, revokeFileURL, getFileType } from '@/lib/fileUtils'
+import { validateFile, createFileURL, revokeFileURL, getFileType, parseBookInfo, cleanBookTitle, cleanAuthorName } from '@/lib/fileUtils'
 import { useLanguage } from '@/contexts/LanguageContext'
 import toast from 'react-hot-toast'
 
@@ -20,7 +20,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
     title: string
     author: string
     filePath: string
-    fileType: 'pdf' | 'epub' | 'mobi'
+    fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
   }>({
     title: '',
     author: '',
@@ -87,10 +87,16 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         return
       }
       
+      // 智能解析文件名，提取书籍信息
+      const parsedInfo = parseBookInfo(file.name)
+      console.log('解析到的书籍信息:', parsedInfo)
+      
       // 设置文件信息
       setSelectedFile(file)
       setFormData(prev => ({
         ...prev,
+        title: parsedInfo.title || prev.title,
+        author: parsedInfo.author || prev.author,
         filePath: file.name,
         fileType: getFileType(file.name)
       }))
@@ -98,6 +104,13 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       // 创建文件URL用于预览
       const url = createFileURL(file)
       setFileURL(url)
+      
+      // 如果成功解析到信息，显示提示
+      if (parsedInfo.title && parsedInfo.author) {
+        toast.success(t('bookForm.autoFillSuccess'))
+      } else if (parsedInfo.title) {
+        toast.success(t('bookForm.autoFillTitleSuccess'))
+      }
     }
   }
 
@@ -147,11 +160,27 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="input-field pl-10"
+                      className="input-field pl-10 pr-12"
                       placeholder={t('bookForm.enterBookTitle')}
                       required
                     />
                     <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    {selectedFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const parsedInfo = parseBookInfo(selectedFile.name)
+                          setFormData(prev => ({ ...prev, title: cleanBookTitle(parsedInfo.title) }))
+                          toast.success(t('bookForm.smartFillTitle'))
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded"
+                        title={t('bookForm.smartFillTitle')}
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -164,11 +193,27 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       type="text"
                       value={formData.author}
                       onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
-                      className="input-field pl-10"
+                      className="input-field pl-10 pr-12"
                       placeholder={t('bookForm.enterAuthorName')}
                       required
                     />
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    {selectedFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const parsedInfo = parseBookInfo(selectedFile.name)
+                          setFormData(prev => ({ ...prev, author: cleanAuthorName(parsedInfo.author) }))
+                          toast.success(t('bookForm.smartFillAuthor'))
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded"
+                        title={t('bookForm.smartFillAuthor')}
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -184,6 +229,9 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                     <option value="pdf">{t('bookForm.pdf')}</option>
                     <option value="epub">{t('bookForm.epub')}</option>
                     <option value="mobi">{t('bookForm.mobi')}</option>
+                    <option value="azw">{t('bookForm.azw')}</option>
+                    <option value="txt">{t('bookForm.txt')}</option>
+                    <option value="html">{t('bookForm.html')}</option>
                   </select>
                 </div>
 
@@ -194,7 +242,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                   <div className="relative">
                     <input
                       type="file"
-                      accept=".pdf,.epub,.mobi"
+                      accept=".pdf,.epub,.mobi,.azw,.txt,.html,.htm"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="file-upload"
