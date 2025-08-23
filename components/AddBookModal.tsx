@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Upload, FileText, User, BookOpen } from 'lucide-react'
 import { useReadingStore } from '@/lib/store'
 import { validateFile, createFileURL, revokeFileURL, getFileType } from '@/lib/fileUtils'
+import { useLanguage } from '@/contexts/LanguageContext'
 import toast from 'react-hot-toast'
 
 interface AddBookModalProps {
@@ -14,6 +15,7 @@ interface AddBookModalProps {
 
 export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
   const { addBook } = useReadingStore()
+  const { t } = useLanguage()
   const [formData, setFormData] = useState<{
     title: string
     author: string
@@ -33,7 +35,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
     e.preventDefault()
     
     if (!formData.title || !formData.author || !selectedFile) {
-      toast.error('请填写所有必填字段并选择文件')
+      toast.error(t('errors.fillAllFields'))
       return
     }
 
@@ -51,10 +53,10 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         fileType: formData.fileType,
       })
       
-      toast.success('书籍添加成功！')
+      toast.success(t('bookForm.addBookSuccess'))
       handleClose()
     } catch (error) {
-      toast.error('添加失败，请重试')
+      toast.error(t('errors.addFailed'))
     } finally {
       setIsUploading(false)
     }
@@ -81,7 +83,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       // 验证文件
       const validation = validateFile(file)
       if (!validation.valid) {
-        toast.error(validation.error || '文件验证失败')
+        toast.error(validation.error || t('errors.fileValidationFailed'))
         return
       }
       
@@ -124,7 +126,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div className="flex items-center space-x-3">
                   <BookOpen className="h-6 w-6 text-primary-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">添加新书籍</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">{t('bookForm.addNewBook')}</h2>
                 </div>
                 <button
                   onClick={handleClose}
@@ -138,7 +140,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    书籍标题 *
+                    {t('bookForm.bookTitle')} *
                   </label>
                   <div className="relative">
                     <input
@@ -146,7 +148,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                       className="input-field pl-10"
-                      placeholder="输入书籍标题"
+                      placeholder={t('bookForm.enterBookTitle')}
                       required
                     />
                     <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -155,7 +157,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    作者 *
+                    {t('bookForm.author')} *
                   </label>
                   <div className="relative">
                     <input
@@ -163,7 +165,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       value={formData.author}
                       onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
                       className="input-field pl-10"
-                      placeholder="输入作者姓名"
+                      placeholder={t('bookForm.enterAuthorName')}
                       required
                     />
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -172,22 +174,22 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    文件类型
+                    {t('bookForm.fileType')}
                   </label>
                   <select
                     value={formData.fileType}
                     onChange={(e) => setFormData(prev => ({ ...prev, fileType: e.target.value as any }))}
                     className="input-field"
                   >
-                    <option value="pdf">PDF</option>
-                    <option value="epub">EPUB</option>
-                    <option value="mobi">MOBI</option>
+                    <option value="pdf">{t('bookForm.pdf')}</option>
+                    <option value="epub">{t('bookForm.epub')}</option>
+                    <option value="mobi">{t('bookForm.mobi')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    选择文件 *
+                    {t('bookForm.selectFile')} *
                   </label>
                   <div className="relative">
                     <input
@@ -205,7 +207,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       <div className="flex items-center space-x-2">
                         <Upload className="h-5 w-5 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          {selectedFile ? selectedFile.name : '点击选择文件'}
+                          {selectedFile ? selectedFile.name : t('bookForm.clickToSelectFile')}
                         </span>
                       </div>
                     </label>
@@ -213,7 +215,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                     {selectedFile && (
                       <div className="mt-2 p-2 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">文件类型: {formData.fileType.toUpperCase()}</span>
+                          <span className="text-gray-600">{t('bookForm.fileType')}: {formData.fileType.toUpperCase()}</span>
                           <span className="text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
                         </div>
                       </div>
@@ -228,7 +230,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                     onClick={handleClose}
                     className="btn-secondary flex-1"
                   >
-                    取消
+                    {t('bookForm.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -238,12 +240,12 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                     {isUploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>添加中...</span>
+                        <span>{t('bookForm.adding')}</span>
                       </>
                     ) : (
                       <>
                         <FileText className="h-4 w-4" />
-                        <span>添加书籍</span>
+                        <span>{t('bookForm.addBook')}</span>
                       </>
                     )}
                   </button>

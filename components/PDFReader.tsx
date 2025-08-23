@@ -24,8 +24,16 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-// 设置PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+// 设置PDF.js worker - 使用本地worker而不是CDN
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url,
+).toString()
+
+// 如果上面的方式不工作，使用CDN fallback
+if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+}
 
 interface EBookReaderProps {
   book: Book
@@ -91,9 +99,25 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   // 处理blob URL转换为File对象
   const getFileFromBlob = async (blobUrl: string): Promise<File | null> => {
     try {
+      console.log('开始转换blob URL:', blobUrl)
       const response = await fetch(blobUrl)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
       const blob = await response.blob()
-      return new File([blob], book.title || 'document.pdf', { type: 'application/pdf' })
+      console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
+      
+      // 确保blob类型是PDF
+      if (blob.type !== 'application/pdf') {
+        console.warn('Blob类型不是PDF:', blob.type, '，强制设置为PDF')
+      }
+      
+      const file = new File([blob], book.title || 'document.pdf', { 
+        type: 'application/pdf',
+        lastModified: Date.now()
+      })
+      console.log('成功创建File对象:', file.name, file.size, file.type)
+      return file
     } catch (error) {
       console.error('转换blob URL失败:', error)
       return null
@@ -124,21 +148,26 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       // 如果是blob URL，转换为File对象
       if (book.filePath.startsWith('blob:')) {
         try {
+          console.log('检测到blob URL，开始转换...')
           const file = await getFileFromBlob(book.filePath)
           if (file) {
-            console.log('成功转换blob URL为File对象')
+            console.log('成功转换blob URL为File对象，设置pdfFile状态')
             setPdfFile(file)
+            setLoading(false) // 文件准备好后停止加载状态
           } else {
+            console.error('转换blob URL失败')
             setError(t('reader.loadError'))
             setLoading(false)
           }
         } catch (error) {
-          console.error('转换blob URL失败:', error)
+          console.error('转换blob URL过程中出错:', error)
           setError(t('reader.loadError'))
           setLoading(false)
         }
       } else {
+        console.log('使用直接文件路径:', book.filePath)
         setPdfFile(book.filePath)
+        setLoading(false)
       }
     }
     

@@ -43,16 +43,25 @@
   },
   "bookForm": {
     "title": "添加新书籍",
+    "addNewBook": "添加新书籍",
     "bookTitle": "书籍标题",
+    "enterBookTitle": "输入书籍标题",
     "author": "作者",
+    "enterAuthorName": "输入作者姓名",
     "fileType": "文件类型",
     "selectFile": "选择文件",
-    "clickToSelect": "点击选择文件",
+    "clickToSelectFile": "点击选择文件",
     "fileInfo": "文件信息",
     "fileSize": "文件大小",
     "uploading": "上传中...",
+    "adding": "添加中...",
     "addBook": "添加书籍",
-    "updateBook": "更新书籍"
+    "addBookSuccess": "书籍添加成功！",
+    "updateBook": "更新书籍",
+    "cancel": "取消",
+    "pdf": "PDF",
+    "epub": "EPUB",
+    "mobi": "MOBI"
   },
   "goals": {
     "title": "阅读目标",
@@ -147,12 +156,9 @@
   },
   "errors": {
     "fillAllFields": "请填写所有必填字段",
-    "selectFile": "请选择文件",
-    "fileValidationFailed": "文件验证失败",
     "addFailed": "添加失败，请重试",
-    "updateFailed": "更新失败，请重试",
-    "deleteFailed": "删除失败，请重试",
-    "aiResponseFailed": "AI响应生成失败，请重试"
+    "fileValidationFailed": "文件验证失败",
+    "generalError": "发生错误，请重试"
   },
   "success": {
     "bookAdded": "书籍添加成功！",

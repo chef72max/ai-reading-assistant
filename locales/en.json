@@ -43,16 +43,25 @@
   },
   "bookForm": {
     "title": "Add New Book",
+    "addNewBook": "Add New Book",
     "bookTitle": "Book Title",
+    "enterBookTitle": "Enter book title",
     "author": "Author",
+    "enterAuthorName": "Enter author's name",
     "fileType": "File Type",
     "selectFile": "Select File",
-    "clickToSelect": "Click to select file",
+    "clickToSelectFile": "Click to select file",
     "fileInfo": "File Information",
     "fileSize": "File Size",
     "uploading": "Uploading...",
+    "adding": "Adding...",
     "addBook": "Add Book",
-    "updateBook": "Update Book"
+    "addBookSuccess": "Book added successfully!",
+    "updateBook": "Update Book",
+    "cancel": "Cancel",
+    "pdf": "PDF",
+    "epub": "EPUB",
+    "mobi": "MOBI"
   },
   "goals": {
     "title": "Reading Goals",
@@ -147,12 +156,9 @@
   },
   "errors": {
     "fillAllFields": "Please fill in all required fields",
-    "selectFile": "Please select a file",
+    "addFailed": "Add failed, please try again",
     "fileValidationFailed": "File validation failed",
-    "addFailed": "Addition failed, please try again",
-    "updateFailed": "Update failed, please try again",
-    "deleteFailed": "Deletion failed, please try again",
-    "aiResponseFailed": "AI response generation failed, please try again"
+    "generalError": "An error occurred, please try again"
   },
   "success": {
     "bookAdded": "Book added successfully!",

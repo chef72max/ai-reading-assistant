@@ -43,16 +43,25 @@
   },
   "bookForm": {
     "title": "Agregar Nuevo Libro",
+    "addNewBook": "Agregar Nuevo Libro",
     "bookTitle": "Título del Libro",
+    "enterBookTitle": "Ingresa el título del libro",
     "author": "Autor",
+    "enterAuthorName": "Ingresa el nombre del autor",
     "fileType": "Tipo de Archivo",
     "selectFile": "Seleccionar Archivo",
-    "clickToSelect": "Haz clic para seleccionar archivo",
+    "clickToSelectFile": "Haz clic para seleccionar archivo",
     "fileInfo": "Información del Archivo",
     "fileSize": "Tamaño del Archivo",
     "uploading": "Subiendo...",
+    "adding": "Agregando...",
     "addBook": "Agregar Libro",
-    "updateBook": "Actualizar Libro"
+    "addBookSuccess": "¡Libro agregado exitosamente!",
+    "updateBook": "Actualizar Libro",
+    "cancel": "Cancelar",
+    "pdf": "PDF",
+    "epub": "EPUB",
+    "mobi": "MOBI"
   },
   "goals": {
     "title": "Metas de Lectura",
@@ -147,12 +156,9 @@
   },
   "errors": {
     "fillAllFields": "Por favor completa todos los campos requeridos",
-    "selectFile": "Por favor selecciona un archivo",
-    "fileValidationFailed": "La validación del archivo falló",
-    "addFailed": "La adición falló, por favor intenta de nuevo",
-    "updateFailed": "La actualización falló, por favor intenta de nuevo",
-    "deleteFailed": "La eliminación falló, por favor intenta de nuevo",
-    "aiResponseFailed": "La generación de respuesta AI falló, por favor intenta de nuevo"
+    "addFailed": "Error al agregar, por favor intenta de nuevo",
+    "fileValidationFailed": "Error en la validación del archivo",
+    "generalError": "Ocurrió un error, por favor intenta de nuevo"
   },
   "success": {
     "bookAdded": "¡Libro agregado exitosamente!",
