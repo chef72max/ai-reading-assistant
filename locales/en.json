@@ -98,23 +98,36 @@
     "page": "Page",
     "optional": "Optional",
     "askQuestion": "Ask your question or request...",
-    "send": "Send",
-    "aiThinking": "AI is thinking...",
-    "exportChat": "Export Chat",
+    "sendQuestion": "Send Question",
     "clearChat": "Clear Chat",
-    "quickActions": {
-      "summarize": "Summarize Key Points",
-      "mindmap": "Generate Mind Map",
-      "recommendations": "Reading Recommendations"
-    },
-    "welcome": "Hello! I'm your AI reading assistant. I can help you:",
-    "capabilities": [
-      "Answer questions about book content",
-      "Summarize chapter key points",
-      "Analyze important concepts",
-      "Generate mind maps",
-      "Provide reading advice"
-    ]
+    "noBookSelected": "No book selected",
+    "selectBookFirst": "Please select a book first to start chatting with AI",
+    "noConversation": "No conversation yet",
+    "startConversation": "Start a conversation by asking a question about your book"
+  },
+  "reader": {
+    "noFileError": "No ebook file path found",
+    "unsupportedFormatError": "Unsupported file format: {format}",
+    "loadError": "Failed to load PDF, please check if the file is correct",
+    "loadingPDF": "Loading PDF...",
+    "filePath": "File Path",
+    "notSet": "Not Set",
+    "noPDFFile": "No PDF File",
+    "uploadPDF": "Please upload a PDF file first",
+    "addNote": "Add Note",
+    "download": "Download",
+    "pageInfo": "Page {current} of {total}",
+    "highlightColor": "Highlight Color",
+    "addHighlightNote": "Add highlight note (optional)",
+    "addHighlight": "Add Highlight",
+    "cancel": "Cancel",
+    "noteType": "Note Type",
+    "note": "Note",
+    "summary": "Summary",
+    "question": "Question",
+    "insight": "Insight",
+    "noteContent": "Note Content",
+    "writeYourThoughts": "Write your thoughts..."
   },
   "stats": {
     "title": "Reading Statistics",
@@ -131,24 +144,6 @@
     "bookTypes": "Book Types Distribution",
     "noteTypes": "Note Types Distribution",
     "topBooks": "Popular Books"
-  },
-  "reader": {
-    "page": "Page",
-    "of": "of",
-    "previousPage": "Previous Page",
-    "nextPage": "Next Page",
-    "zoomIn": "Zoom In",
-    "zoomOut": "Zoom Out",
-    "rotate": "Rotate",
-    "addNote": "Add Note",
-    "addHighlight": "Add Highlight",
-    "highlightColor": "Highlight Color",
-    "highlightNote": "Highlight Note (Optional)",
-    "noteType": "Note Type",
-    "noteContent": "Note Content",
-    "writeYourThoughts": "Write your thoughts...",
-    "pdfLoadError": "PDF loading failed, please check if the file is correct",
-    "returnToLibrary": "Return to Library"
   },
   "errors": {
     "fillAllFields": "Please fill in all required fields",

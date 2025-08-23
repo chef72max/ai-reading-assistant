@@ -92,29 +92,42 @@
     "noNotesDesc": "Crea tu primera nota para comenzar a registrar ideas"
   },
   "ai": {
-    "title": "Compañero de Lectura AI",
-    "subtitle": "Deja que la AI sea tu compañero de lectura, responda preguntas y resuma puntos clave",
+    "title": "Asistente de Lectura IA",
+    "subtitle": "Deja que la IA sea tu compañero de lectura, responde preguntas y resume puntos clave",
     "selectBook": "Seleccionar Libro",
     "page": "Página",
     "optional": "Opcional",
     "askQuestion": "Haz tu pregunta o solicitud...",
-    "send": "Enviar",
-    "aiThinking": "La AI está pensando...",
-    "exportChat": "Exportar Chat",
+    "sendQuestion": "Enviar Pregunta",
     "clearChat": "Limpiar Chat",
-    "quickActions": {
-      "summarize": "Resumir Puntos Clave",
-      "mindmap": "Generar Mapa Mental",
-      "recommendations": "Recomendaciones de Lectura"
-    },
-    "welcome": "¡Hola! Soy tu asistente de lectura AI. Puedo ayudarte:",
-    "capabilities": [
-      "Responder preguntas sobre el contenido del libro",
-      "Resumir puntos clave del capítulo",
-      "Analizar conceptos importantes",
-      "Generar mapas mentales",
-      "Proporcionar consejos de lectura"
-    ]
+    "noBookSelected": "No hay libro seleccionado",
+    "selectBookFirst": "Por favor selecciona un libro primero para comenzar a chatear con la IA",
+    "noConversation": "Aún no hay conversación",
+    "startConversation": "Comienza una conversación haciendo una pregunta sobre tu libro"
+  },
+  "reader": {
+    "noFileError": "No se encontró ruta de archivo de libro electrónico",
+    "unsupportedFormatError": "Formato de archivo no soportado: {format}",
+    "loadError": "Error al cargar PDF, por favor verifica si el archivo es correcto",
+    "loadingPDF": "Cargando PDF...",
+    "filePath": "Ruta del Archivo",
+    "notSet": "No Establecido",
+    "noPDFFile": "No hay archivo PDF",
+    "uploadPDF": "Por favor sube un archivo PDF primero",
+    "addNote": "Agregar Nota",
+    "download": "Descargar",
+    "pageInfo": "Página {current} de {total}",
+    "highlightColor": "Color de Resaltado",
+    "addHighlightNote": "Agregar nota de resaltado (opcional)",
+    "addHighlight": "Agregar Resaltado",
+    "cancel": "Cancelar",
+    "noteType": "Tipo de Nota",
+    "note": "Nota",
+    "summary": "Resumen",
+    "question": "Pregunta",
+    "insight": "Perspicacia",
+    "noteContent": "Contenido de la Nota",
+    "writeYourThoughts": "Escribe tus pensamientos..."
   },
   "stats": {
     "title": "Estadísticas de Lectura",
@@ -131,24 +144,6 @@
     "bookTypes": "Distribución de Tipos de Libros",
     "noteTypes": "Distribución de Tipos de Notas",
     "topBooks": "Libros Populares"
-  },
-  "reader": {
-    "page": "Página",
-    "of": "de",
-    "previousPage": "Página Anterior",
-    "nextPage": "Página Siguiente",
-    "zoomIn": "Acercar",
-    "zoomOut": "Alejar",
-    "rotate": "Rotar",
-    "addNote": "Agregar Nota",
-    "addHighlight": "Agregar Resaltado",
-    "highlightColor": "Color de Resaltado",
-    "highlightNote": "Nota de Resaltado (Opcional)",
-    "noteType": "Tipo de Nota",
-    "noteContent": "Contenido de la Nota",
-    "writeYourThoughts": "Escribe tus pensamientos...",
-    "pdfLoadError": "Error al cargar PDF, verifica si el archivo es correcto",
-    "returnToLibrary": "Volver a la Biblioteca"
   },
   "errors": {
     "fillAllFields": "Por favor completa todos los campos requeridos",

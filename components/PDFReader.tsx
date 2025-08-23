@@ -15,23 +15,53 @@ import {
   FileText,
   Search,
   Bookmark,
-  Share2
+  Share2,
+  FileText as FileTextIcon
 } from 'lucide-react'
 import { useReadingStore, Book } from '@/lib/store'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 // 设置PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 
-interface PDFReaderProps {
+interface EBookReaderProps {
   book: Book
   onClose: () => void
 }
 
-export default function PDFReader({ book, onClose }: PDFReaderProps) {
+// 支持的文件格式
+const SUPPORTED_FORMATS = {
+  pdf: 'application/pdf',
+  epub: 'application/epub+zip',
+  mobi: 'application/x-mobipocket-ebook',
+  azw: 'application/vnd.amazon.ebook',
+  txt: 'text/plain',
+  html: 'text/html'
+}
+
+// 获取文件格式
+function getFileFormat(filePath: string): string {
+  // 处理blob URL
+  if (filePath.startsWith('blob:')) {
+    // 对于blob URL，我们假设是PDF格式
+    return 'pdf'
+  }
+  const extension = filePath.split('.').pop()?.toLowerCase()
+  return extension || 'unknown'
+}
+
+// 检查是否支持该格式
+function isSupportedFormat(filePath: string): boolean {
+  const format = getFileFormat(filePath)
+  return Object.keys(SUPPORTED_FORMATS).includes(format)
+}
+
+export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const { updateBookProgress, addNote, addHighlight } = useReadingStore()
+  const { t, language } = useLanguage()
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState(book.currentPage || 1)
   const [scale, setScale] = useState(1.0)
@@ -44,28 +74,72 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
   const [selectedText, setSelectedText] = useState('')
   const [showHighlightMenu, setShowHighlightMenu] = useState(false)
   const [highlightColor, setHighlightColor] = useState<'yellow' | 'green' | 'blue' | 'pink' | 'purple'>('yellow')
+  const [fileFormat, setFileFormat] = useState<string>('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // 更新阅读进度
   useEffect(() => {
-    // 更新阅读进度
     if (numPages > 0) {
       const progress = Math.round((pageNumber / numPages) * 100)
       updateBookProgress(book.id, pageNumber, progress)
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
 
+  useEffect(() => {
+    // 检查文件路径和格式
+    if (!book.filePath) {
+      setError(t('reader.noFileError'))
+      setLoading(false)
+      return
+    }
+    
+    const format = getFileFormat(book.filePath)
+    setFileFormat(format)
+    
+    if (!isSupportedFormat(book.filePath)) {
+      setError(t('reader.unsupportedFormatError').replace('{format}', format))
+      setLoading(false)
+      return
+    }
+    
+    console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
+    setLoading(true)
+  }, [book.filePath, t])
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    console.log('PDF加载成功，页数:', numPages)
     setNumPages(numPages)
     setLoading(false)
     setError(null)
   }
 
   const onDocumentLoadError = (error: Error) => {
-    setError('PDF加载失败，请检查文件是否正确')
-    setLoading(false)
     console.error('PDF加载错误:', error)
+    setError(t('reader.loadError'))
+    setLoading(false)
+  }
+
+  // 处理blob URL转换为File对象
+  const getFileFromBlob = async (blobUrl: string): Promise<File | null> => {
+    try {
+      const response = await fetch(blobUrl)
+      const blob = await response.blob()
+      return new File([blob], book.title || 'document.pdf', { type: 'application/pdf' })
+    } catch (error) {
+      console.error('转换blob URL失败:', error)
+      return null
+    }
+  }
+
+  // 获取要传递给PDF组件的文件
+  const getFileForPDF = () => {
+    if (book.filePath?.startsWith('blob:')) {
+      // 对于blob URL，直接返回URL字符串
+      return book.filePath
+    }
+    return book.filePath
   }
 
   const goToPreviousPage = () => {
@@ -175,7 +249,7 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
               className="btn-secondary flex items-center space-x-2"
             >
               <FileText className="h-4 w-4" />
-              <span>添加笔记</span>
+              <span>{t('reader.addNote')}</span>
             </button>
             
             <button
@@ -183,7 +257,7 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
               className="btn-secondary flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
-              <span>下载</span>
+              <span>{t('reader.download')}</span>
             </button>
           </div>
         </div>
@@ -202,13 +276,13 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
             </button>
             
             <span className="text-sm text-gray-600">
-              第 {pageNumber} 页，共 {numPages} 页
+              {t('reader.pageInfo').replace('{current}', pageNumber.toString()).replace('{total}', numPages.toString())}
             </span>
             
             <button
               onClick={goToNextPage}
               disabled={pageNumber >= numPages}
-              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg hover:bg-gray-200 rounded-lg hover:bg-gray-200"
+              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg hover:bg-gray-200"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -254,21 +328,22 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">正在加载PDF...</p>
+                <p className="text-gray-600">{t('reader.loadingPDF')}</p>
+                <p className="text-sm text-gray-500 mt-2">{t('reader.filePath')}: {book.filePath || t('reader.notSet')}</p>
               </div>
             </div>
           )}
           
-          {!loading && (
+          {!loading && book.filePath && (
             <Document
-              file={book.filePath}
+              file={getFileForPDF()}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">正在加载PDF...</p>
+                    <p className="text-gray-600">{t('reader.loadingPDF')}</p>
                   </div>
                 </div>
               }
@@ -280,8 +355,24 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
                 className="shadow-lg"
                 renderTextLayer={true}
                 renderAnnotationLayer={true}
+                onLoadSuccess={() => {
+                  console.log('页面加载成功:', pageNumber)
+                }}
+                onLoadError={(error) => {
+                  console.error('页面加载失败:', error)
+                }}
               />
             </Document>
+          )}
+          
+          {!loading && !book.filePath && (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('reader.noPDFFile')}</h3>
+                <p className="text-gray-600">{t('reader.uploadPDF')}</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -301,7 +392,7 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
             }}
           >
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-sm font-medium text-gray-700">高亮颜色:</span>
+              <span className="text-sm font-medium text-gray-700">{t('reader.highlightColor')}:</span>
               {['yellow', 'green', 'blue', 'pink', 'purple'].map(color => (
                 <button
                   key={color}
@@ -317,7 +408,7 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
             <textarea
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
-              placeholder="添加高亮笔记（可选）"
+              placeholder={t('reader.addHighlightNote')}
               className="w-full p-2 border border-gray-300 rounded text-sm mb-3 resize-none"
               rows={2}
             />
@@ -327,13 +418,13 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
                 onClick={handleAddHighlight}
                 className="btn-primary text-sm px-3 py-1"
               >
-                添加高亮
+                {t('reader.addHighlight')}
               </button>
               <button
                 onClick={() => setShowHighlightMenu(false)}
                 className="btn-secondary text-sm px-3 py-1"
               >
-                取消
+                {t('reader.cancel')}
               </button>
             </div>
           </motion.div>
@@ -356,7 +447,7 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
               className="bg-white rounded-xl shadow-xl w-full max-w-md"
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">添加笔记</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('reader.addNote')}</h3>
                 <button
                   onClick={() => setShowNotes(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -368,28 +459,28 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    笔记类型
+                    {t('reader.noteType')}
                   </label>
                   <select
                     value={noteType}
                     onChange={(e) => setNoteType(e.target.value as any)}
                     className="input-field"
                   >
-                    <option value="note">笔记</option>
-                    <option value="summary">总结</option>
-                    <option value="question">问题</option>
-                    <option value="insight">洞察</option>
+                    <option value="note">{t('reader.note')}</option>
+                    <option value="summary">{t('reader.summary')}</option>
+                    <option value="question">{t('reader.question')}</option>
+                    <option value="insight">{t('reader.insight')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    笔记内容
+                    {t('reader.noteContent')}
                   </label>
                   <textarea
                     value={noteContent}
                     onChange={(e) => setNoteContent(e.target.value)}
-                    placeholder="写下你的想法..."
+                    placeholder={t('reader.writeYourThoughts')}
                     className="input-field min-h-[120px] resize-none"
                     required
                   />
@@ -400,13 +491,13 @@ export default function PDFReader({ book, onClose }: PDFReaderProps) {
                     onClick={() => setShowNotes(false)}
                     className="btn-secondary flex-1"
                   >
-                    取消
+                    {t('reader.cancel')}
                   </button>
                   <button
                     onClick={addNoteToPage}
                     className="btn-primary flex-1"
                   >
-                    添加笔记
+                    {t('reader.addNote')}
                   </button>
                 </div>
               </div>

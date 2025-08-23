@@ -92,29 +92,42 @@
     "noNotesDesc": "创建你的第一条笔记开始记录想法"
   },
   "ai": {
-    "title": "AI伴读助手",
-    "subtitle": "让AI成为你的阅读伙伴，解答疑问、总结要点",
+    "title": "AI阅读助手",
+    "subtitle": "让AI成为你的阅读伙伴，回答问题并总结要点",
     "selectBook": "选择书籍",
     "page": "页码",
     "optional": "可选",
-    "askQuestion": "输入你的问题或请求...",
-    "send": "发送",
-    "aiThinking": "AI正在思考...",
-    "exportChat": "导出对话",
+    "askQuestion": "提出你的问题或请求...",
+    "sendQuestion": "发送问题",
     "clearChat": "清空对话",
-    "quickActions": {
-      "summarize": "总结要点",
-      "mindmap": "生成思维导图",
-      "recommendations": "阅读建议"
-    },
-    "welcome": "你好！我是你的AI阅读助手。我可以帮你：",
-    "capabilities": [
-      "解答关于书籍内容的问题",
-      "总结章节要点",
-      "分析重要概念",
-      "生成思维导图",
-      "提供阅读建议"
-    ]
+    "noBookSelected": "未选择书籍",
+    "selectBookFirst": "请先选择一本书开始与AI聊天",
+    "noConversation": "还没有对话",
+    "startConversation": "通过询问关于书籍的问题开始对话"
+  },
+  "reader": {
+    "noFileError": "没有找到电子书文件路径",
+    "unsupportedFormatError": "不支持的文件格式: {format}",
+    "loadError": "PDF加载失败，请检查文件是否正确",
+    "loadingPDF": "正在加载PDF...",
+    "filePath": "文件路径",
+    "notSet": "未设置",
+    "noPDFFile": "没有PDF文件",
+    "uploadPDF": "请先上传PDF文件",
+    "addNote": "添加笔记",
+    "download": "下载",
+    "pageInfo": "第 {current} 页，共 {total} 页",
+    "highlightColor": "高亮颜色",
+    "addHighlightNote": "添加高亮笔记（可选）",
+    "addHighlight": "添加高亮",
+    "cancel": "取消",
+    "noteType": "笔记类型",
+    "note": "笔记",
+    "summary": "总结",
+    "question": "问题",
+    "insight": "洞察",
+    "noteContent": "笔记内容",
+    "writeYourThoughts": "写下你的想法..."
   },
   "stats": {
     "title": "阅读统计",
@@ -131,24 +144,6 @@
     "bookTypes": "书籍类型分布",
     "noteTypes": "笔记类型分布",
     "topBooks": "热门书籍"
-  },
-  "reader": {
-    "page": "第",
-    "of": "页，共",
-    "previousPage": "上一页",
-    "nextPage": "下一页",
-    "zoomIn": "放大",
-    "zoomOut": "缩小",
-    "rotate": "旋转",
-    "addNote": "添加笔记",
-    "addHighlight": "添加高亮",
-    "highlightColor": "高亮颜色",
-    "highlightNote": "高亮笔记（可选）",
-    "noteType": "笔记类型",
-    "noteContent": "笔记内容",
-    "writeYourThoughts": "写下你的想法...",
-    "pdfLoadError": "PDF加载失败，请检查文件是否正确",
-    "returnToLibrary": "返回书库"
   },
   "errors": {
     "fillAllFields": "请填写所有必填字段",
