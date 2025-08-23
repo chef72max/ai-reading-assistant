@@ -75,6 +75,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [showHighlightMenu, setShowHighlightMenu] = useState(false)
   const [highlightColor, setHighlightColor] = useState<'yellow' | 'green' | 'blue' | 'pink' | 'purple'>('yellow')
   const [fileFormat, setFileFormat] = useState<string>('')
+  const [pdfFile, setPdfFile] = useState<File | string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -86,40 +87,6 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       updateBookProgress(book.id, pageNumber, progress)
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
-
-  useEffect(() => {
-    // 检查文件路径和格式
-    if (!book.filePath) {
-      setError(t('reader.noFileError'))
-      setLoading(false)
-      return
-    }
-    
-    const format = getFileFormat(book.filePath)
-    setFileFormat(format)
-    
-    if (!isSupportedFormat(book.filePath)) {
-      setError(t('reader.unsupportedFormatError').replace('{format}', format))
-      setLoading(false)
-      return
-    }
-    
-    console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
-    setLoading(true)
-  }, [book.filePath, t])
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    console.log('PDF加载成功，页数:', numPages)
-    setNumPages(numPages)
-    setLoading(false)
-    setError(null)
-  }
-
-  const onDocumentLoadError = (error: Error) => {
-    console.error('PDF加载错误:', error)
-    setError(t('reader.loadError'))
-    setLoading(false)
-  }
 
   // 处理blob URL转换为File对象
   const getFileFromBlob = async (blobUrl: string): Promise<File | null> => {
@@ -133,13 +100,62 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }
 
-  // 获取要传递给PDF组件的文件
-  const getFileForPDF = () => {
-    if (book.filePath?.startsWith('blob:')) {
-      // 对于blob URL，直接返回URL字符串
-      return book.filePath
+  // 使用useEffect来处理文件加载
+  useEffect(() => {
+    const loadPDF = async () => {
+      if (!book.filePath) {
+        setError(t('reader.noFileError'))
+        setLoading(false)
+        return
+      }
+      
+      const format = getFileFormat(book.filePath)
+      setFileFormat(format)
+      
+      if (!isSupportedFormat(book.filePath)) {
+        setError(t('reader.unsupportedFormatError').replace('{format}', format))
+        setLoading(false)
+        return
+      }
+      
+      console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
+      setLoading(true)
+      
+      // 如果是blob URL，转换为File对象
+      if (book.filePath.startsWith('blob:')) {
+        try {
+          const file = await getFileFromBlob(book.filePath)
+          if (file) {
+            console.log('成功转换blob URL为File对象')
+            setPdfFile(file)
+          } else {
+            setError(t('reader.loadError'))
+            setLoading(false)
+          }
+        } catch (error) {
+          console.error('转换blob URL失败:', error)
+          setError(t('reader.loadError'))
+          setLoading(false)
+        }
+      } else {
+        setPdfFile(book.filePath)
+      }
     }
-    return book.filePath
+    
+    loadPDF()
+  }, [book.filePath, t])
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    console.log('PDF加载成功，页数:', numPages)
+    setNumPages(numPages)
+    setLoading(false)
+    setError(null)
+  }
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF加载错误:', error)
+    setError(t('reader.loadError'))
+    setLoading(false)
   }
 
   const goToPreviousPage = () => {
@@ -334,9 +350,9 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </div>
           )}
           
-          {!loading && book.filePath && (
+          {!loading && pdfFile && (
             <Document
-              file={getFileForPDF()}
+              file={pdfFile}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
               loading={
@@ -365,7 +381,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </Document>
           )}
           
-          {!loading && !book.filePath && (
+          {!loading && !pdfFile && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
