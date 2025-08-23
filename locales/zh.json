@@ -141,7 +141,7 @@
     "helpPrompt": "有什么我可以帮助你的吗？"
   },
   "reader": {
-    "noFileError": "没有找到电子书文件路径",
+    "noFileError": "未找到电子书文件路径",
     "unsupportedFormatError": "不支持的文件格式: {format}",
     "loadError": "PDF加载失败，请检查文件是否正确",
     "loadingPDF": "正在加载PDF...",
@@ -160,9 +160,11 @@
     "note": "笔记",
     "summary": "总结",
     "question": "问题",
-    "insight": "洞察",
+    "insight": "见解",
     "noteContent": "笔记内容",
-    "writeYourThoughts": "写下你的想法..."
+    "writeYourThoughts": "写下你的想法...",
+    "loadFailed": "PDF加载失败",
+    "returnToLibrary": "返回书库"
   },
   "stats": {
     "title": "阅读统计",

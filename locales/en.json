@@ -162,7 +162,9 @@
     "question": "Question",
     "insight": "Insight",
     "noteContent": "Note Content",
-    "writeYourThoughts": "Write your thoughts..."
+    "writeYourThoughts": "Write your thoughts...",
+    "loadFailed": "PDF Loading Failed",
+    "returnToLibrary": "Return to Library"
   },
   "stats": {
     "title": "Reading Statistics",

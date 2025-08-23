@@ -141,13 +141,13 @@
     "helpPrompt": "¿En qué puedo ayudarte?"
   },
   "reader": {
-    "noFileError": "No se encontró ruta de archivo de libro electrónico",
+    "noFileError": "No se encontró la ruta del archivo de ebook",
     "unsupportedFormatError": "Formato de archivo no soportado: {format}",
     "loadError": "Error al cargar PDF, por favor verifica si el archivo es correcto",
     "loadingPDF": "Cargando PDF...",
     "filePath": "Ruta del Archivo",
     "notSet": "No Establecido",
-    "noPDFFile": "No hay archivo PDF",
+    "noPDFFile": "Sin Archivo PDF",
     "uploadPDF": "Por favor sube un archivo PDF primero",
     "addNote": "Agregar Nota",
     "download": "Descargar",
@@ -162,7 +162,9 @@
     "question": "Pregunta",
     "insight": "Perspicacia",
     "noteContent": "Contenido de la Nota",
-    "writeYourThoughts": "Escribe tus pensamientos..."
+    "writeYourThoughts": "Escribe tus pensamientos...",
+    "loadFailed": "Error al Cargar PDF",
+    "returnToLibrary": "Volver a la Biblioteca"
   },
   "stats": {
     "title": "Estadísticas de Lectura",

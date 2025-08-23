@@ -24,15 +24,12 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-// 设置PDF.js worker - 使用本地worker而不是CDN
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).toString()
+// 设置PDF.js worker - 使用CDN worker确保兼容性
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 
-// 如果上面的方式不工作，使用CDN fallback
+// 备用worker源
 if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 }
 
 interface EBookReaderProps {
@@ -107,17 +104,11 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       const blob = await response.blob()
       console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
       
-      // 确保blob类型是PDF
-      if (blob.type !== 'application/pdf') {
-        console.warn('Blob类型不是PDF:', blob.type, '，强制设置为PDF')
-      }
+      // 创建新的blob URL，确保类型正确
+      const newBlobUrl = URL.createObjectURL(blob)
+      console.log('创建新的blob URL:', newBlobUrl)
       
-      const file = new File([blob], book.title || 'document.pdf', { 
-        type: 'application/pdf',
-        lastModified: Date.now()
-      })
-      console.log('成功创建File对象:', file.name, file.size, file.type)
-      return file
+      return newBlobUrl
     } catch (error) {
       console.error('转换blob URL失败:', error)
       return null
@@ -144,16 +135,17 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       
       console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
       setLoading(true)
+      setError(null)
       
-      // 如果是blob URL，转换为File对象
+      // 如果是blob URL，转换为新的blob URL
       if (book.filePath.startsWith('blob:')) {
         try {
           console.log('检测到blob URL，开始转换...')
-          const file = await getFileFromBlob(book.filePath)
-          if (file) {
-            console.log('成功转换blob URL为File对象，设置pdfFile状态')
-            setPdfFile(file)
-            setLoading(false) // 文件准备好后停止加载状态
+          const newBlobUrl = await getFileFromBlob(book.filePath)
+          if (newBlobUrl) {
+            console.log('成功转换blob URL，设置pdfFile状态')
+            setPdfFile(newBlobUrl)
+            // 不在这里设置loading为false，让Document组件处理
           } else {
             console.error('转换blob URL失败')
             setError(t('reader.loadError'))
@@ -252,13 +244,13 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">PDF加载失败</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('reader.loadFailed')}</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={onClose}
               className="btn-primary"
             >
-              返回书库
+              {t('reader.returnToLibrary')}
             </button>
           </div>
         </div>
@@ -389,6 +381,21 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">{t('reader.loadingPDF')}</p>
+                  </div>
+                </div>
+              }
+              error={
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('reader.loadFailed')}</h3>
+                    <p className="text-gray-600">{t('reader.loadError')}</p>
+                    <button
+                      onClick={() => setPdfFile(null)}
+                      className="btn-secondary mt-4"
+                    >
+                      {t('reader.returnToLibrary')}
+                    </button>
                   </div>
                 </div>
               }
