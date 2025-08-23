@@ -110,67 +110,87 @@ export const detectFileFormat = (filename: string, mimeType?: string): string =>
 
 // Intelligently parse filename to extract book title and author
 export const parseBookInfo = (fileName: string): { title: string; author: string } => {
-  // Remove file extension
-  let nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
-  
-  // Common separator patterns
-  const patterns = [
-    // Author - Title format
-    /^(.+?)\s*[-–—]\s*(.+)$/,
-    // Title by Author format
-    /^(.+?)\s+by\s+(.+)$/i,
-    // Title (Author) format
-    /^(.+?)\s*\(([^)]+)\)$/,
-    // Title Author format (author at the end)
-    /^(.+?)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)$/,
-    // Title Author format (author at the end, with period)
-    /^(.+?)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)\.$/,
-  ]
-  
-  for (const pattern of patterns) {
-    const match = nameWithoutExt.match(pattern)
-    if (match) {
-      let title = match[1].trim()
-      let author = match[2].trim()
-      
-      // Clean title of additional information
-      title = title.replace(/\([^)]*\)/g, '').trim() // Remove parentheses content
-      title = title.replace(/\[[^\]]*\]/g, '').trim() // Remove square bracket content
-      title = title.replace(/第.*版/, '').trim() // Remove version information
-      title = title.replace(/\d+$/, '').trim() // Remove trailing numbers
-      
-      // Clean author name
-      author = author.replace(/\([^)]*\)/g, '').trim() // Remove parentheses content
-      author = author.replace(/\[[^\]]*\]/g, '').trim() // Remove square bracket content
-      author = author.replace(/\.$/, '').trim() // Remove trailing period
-      
-      // If title or author is too short, it might be misidentified
-      if (title.length > 2 && author.length > 2) {
-        return { title, author }
-      }
-    }
-  }
-  
-  // If no pattern matches, try intelligent splitting
-  const words = nameWithoutExt.split(/[\s\-_]+/)
-  if (words.length >= 3) {
-    // Assume last 2-3 words are author name
-    const authorWords = words.slice(-2)
-    const titleWords = words.slice(0, -2)
-    
-    const author = authorWords.join(' ')
-    const title = titleWords.join(' ')
-    
-    // Validate reasonableness
-    if (title.length > 3 && author.length > 3) {
+  // Remove extension
+  let name = fileName.replace(/\.[^/.]+$/, '').trim()
+
+  // Drop trailing site/vendor suffix like " - libgen.li" or similar
+  name = name.replace(/\s+-\s+(libgen(\.\w+)?|z-?lib(rary)?|bookzz|annas-archive).*$/i, '').trim()
+
+  // Try "Authors - Title" first
+  const dashSplit = name.split(/\s+-\s+/)
+  if (dashSplit.length >= 2) {
+    const authorsPart = dashSplit[0]
+    const titlePartRaw = dashSplit.slice(1).join(' - ')
+
+    // Authors are sometimes separated by underscores
+    const rawAuthors = authorsPart.split(/[_]+/).map(s => s.trim()).filter(Boolean)
+    const author = cleanAuthorName(
+      rawAuthors
+        .map(a => a.replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ', '))
+        .join(', ')
+    )
+
+    // Title sometimes uses underscores for subtitle separators
+    let title = titlePartRaw
+      .replace(/_/ , ': ') // first underscore as subtitle delimiter
+      .replace(/_/g, ' ')
+      .replace(/\([^)]*\)/g, '') // remove parentheses content like years/publisher
+      .replace(/\[[^\]]*\]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+    title = cleanBookTitle(title)
+
+    if (title.length > 0 && author.length > 0) {
       return { title, author }
     }
   }
-  
-  // If all fails, return filename as title, author as empty
-  return { 
-    title: nameWithoutExt.replace(/[_-]/g, ' ').trim(),
+
+  // Fallback patterns
+  const nameWithoutExt = name
+  const patterns = [
+    /^(.+?)\s*[-–—]\s*(.+)$/,
+    /^(.+?)\s+by\s+(.+)$/i,
+    /^(.+?)\s*\(([^)]+)\)$/,
+  ]
+  for (const pattern of patterns) {
+    const match = nameWithoutExt.match(pattern)
+    if (match) {
+      const title = cleanBookTitle(match[2] ? match[2].trim() : match[1].trim())
+      const author = cleanAuthorName(match[2] ? match[1].trim() : '')
+      if (title) return { title, author }
+    }
+  }
+
+  // Last resort
+  return {
+    title: cleanBookTitle(nameWithoutExt.replace(/[_-]/g, ' ').trim()),
     author: ''
+  }
+}
+
+export function getFileType(filename: string): string {
+  if (!filename) return 'unknown'
+  const lower = filename.toLowerCase()
+  const ext = lower.split('.').pop() || ''
+  const extByDot = lower.slice(lower.lastIndexOf('.') + 1)
+  const primary = (ext || extByDot).toLowerCase()
+  switch (primary) {
+    case 'pdf': return 'pdf'
+    case 'epub': return 'epub'
+    case 'mobi': return 'mobi'
+    case 'txt': return 'txt'
+    case 'html':
+    case 'htm': return 'html'
+    case 'azw': return 'azw'
+    default: {
+      if (lower.includes('.pdf') || lower.endsWith('pdf')) return 'pdf'
+      if (lower.includes('.epub') || lower.endsWith('epub')) return 'epub'
+      if (lower.includes('.mobi') || lower.endsWith('mobi')) return 'mobi'
+      if (lower.includes('.txt') || lower.endsWith('txt')) return 'txt'
+      if (lower.includes('.html') || lower.includes('.htm') || lower.endsWith('html') || lower.endsWith('htm')) return 'html'
+      if (lower.includes('.azw') || lower.endsWith('azw')) return 'azw'
+      return 'unknown'
+    }
   }
 }
 
@@ -242,81 +262,6 @@ export const createFileURL = (file: File): string => {
 
 export const revokeFileURL = (url: string): void => {
   URL.revokeObjectURL(url)
-}
-
-export function getFileType(filename: string): string {
-  if (!filename) return 'unknown';
-  
-  console.log('🔍 Detecting file type for:', filename);
-  
-  // First try exact extension match
-  const extension = filename.split('.').pop()?.toLowerCase();
-  console.log('📄 Extension found:', extension);
-  
-  // Also try to find the last dot in the filename
-  const lastDotIndex = filename.lastIndexOf('.');
-  const extensionFromLastDot = lastDotIndex !== -1 ? filename.substring(lastDotIndex + 1).toLowerCase() : null;
-  console.log('🔍 Extension from last dot:', extensionFromLastDot);
-  
-  // Try both extension methods
-  const primaryExtension = extension || extensionFromLastDot;
-  console.log('🎯 Primary extension to check:', primaryExtension);
-  
-  switch (primaryExtension) {
-    case 'pdf':
-      console.log('✅ Detected PDF format');
-      return 'pdf';
-    case 'epub':
-      console.log('✅ Detected EPUB format');
-      return 'epub';
-    case 'mobi':
-      console.log('✅ Detected MOBI format');
-      return 'mobi';
-    case 'txt':
-      console.log('✅ Detected TXT format');
-      return 'txt';
-    case 'html':
-    case 'htm':
-      console.log('✅ Detected HTML format');
-      return 'html';
-    case 'azw':
-      console.log('✅ Detected AZW format');
-      return 'azw';
-    default:
-      console.log('⚠️ Extension not recognized, trying pattern matching...');
-      // Try to infer from filename patterns
-      const lowerFilename = filename.toLowerCase();
-      console.log('🔍 Pattern matching on filename:', lowerFilename);
-      
-      // More robust pattern matching
-      if (lowerFilename.includes('.pdf') || lowerFilename.endsWith('pdf')) {
-        console.log('✅ Found PDF in filename pattern matching');
-        return 'pdf';
-      }
-      if (lowerFilename.includes('.epub') || lowerFilename.endsWith('epub')) {
-        console.log('✅ Found EPUB in filename pattern matching');
-        return 'epub';
-      }
-      if (lowerFilename.includes('.mobi') || lowerFilename.endsWith('mobi')) {
-        console.log('✅ Found MOBI in filename pattern matching');
-        return 'mobi';
-      }
-      if (lowerFilename.includes('.txt') || lowerFilename.endsWith('txt')) {
-        console.log('✅ Found TXT in filename pattern matching');
-        return 'txt';
-      }
-      if (lowerFilename.includes('.html') || lowerFilename.includes('.htm') || lowerFilename.endsWith('html') || lowerFilename.endsWith('htm')) {
-        console.log('✅ Found HTML in filename pattern matching');
-        return 'html';
-      }
-      if (lowerFilename.includes('.azw') || lowerFilename.endsWith('azw')) {
-        console.log('✅ Found AZW in filename pattern matching');
-        return 'azw';
-      }
-      
-      console.log('❌ No known format detected, returning unknown');
-      return 'unknown';
-  }
 }
 
 // Simulate file upload to server

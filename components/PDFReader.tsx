@@ -207,6 +207,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [currentFormat, setCurrentFormat] = useState<string>('')
   const [fileRestored, setFileRestored] = useState<boolean>(false)
   const [retryCount, setRetryCount] = useState<number>(0)
+  const [localFileData, setLocalFileData] = useState<File | null>(null)
 
   // Reading statistics
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date())
@@ -420,6 +421,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       h => h.bookId === book.id && h.page === pageNumber
     )
     setPageHighlights(currentPageHighlights)
+    // For PDF, re-apply highlights to the text layer after state update
+    if (currentFormat === 'pdf') {
+      setTimeout(() => {
+        applyHighlightsToPDF()
+      }, 0)
+    }
   }, [highlights, book.id, pageNumber])
 
   
@@ -436,12 +443,13 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       
       // Always try to restore from IndexedDB first, regardless of book.fileData status
       console.log('🔍 Attempting IndexedDB recovery for book:', book.id)
+      let restoredFile: File | null = null
       try {
-        const restoredFile = await getFileFromIndexedDB(book.id)
+        restoredFile = await getFileFromIndexedDB(book.id)
         if (restoredFile) {
           console.log('✅ File restored from IndexedDB:', restoredFile.name, restoredFile.size, 'bytes')
-          // Update the book object with restored file
-          book.fileData = restoredFile
+          // Store restored file in local state instead of mutating props
+          setLocalFileData(restoredFile)
           setFileRestored(true)
         } else {
           console.error('❌ No file found in IndexedDB for book:', book.id)
@@ -459,23 +467,23 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       let fileToUse: File | string | null = null
       let detectedFormat = ''
       
-      // At this point, book.fileData should be restored from IndexedDB
-      if (book.fileData && book.fileData instanceof File) {
-        console.log('✅ Using restored File object from IndexedDB:', book.fileData.name, book.fileData.size, 'bytes')
+      // Use the restored File object directly
+      if (restoredFile && restoredFile instanceof File) {
+        console.log('✅ Using restored File object from IndexedDB:', restoredFile.name, restoredFile.size, 'bytes')
         
         // Validate file object
-        if (book.fileData.name && book.fileData.size > 0) {
-          fileToUse = book.fileData
-          detectedFormat = detectFileFormat(book.fileData.name, book.fileData.type)
+        if (restoredFile.name && restoredFile.size > 0) {
+          fileToUse = restoredFile
+          detectedFormat = detectFileFormat(restoredFile.name, restoredFile.type)
           console.log('🔍 Format detection result:', detectedFormat)
         } else {
-          console.error('❌ File object is invalid (no name or size):', book.fileData)
+          console.error('❌ File object is invalid (no name or size):', restoredFile)
           setError('文件对象无效，无法加载电子书。请重新上传书籍。')
           setLoading(false)
           return
         }
       } else {
-        console.error('❌ File object is not valid after IndexedDB restoration:', book.fileData)
+        console.error('❌ File object is not valid after IndexedDB restoration:', restoredFile)
         setError('文件对象无效，无法加载电子书。请重新上传书籍。')
         setLoading(false)
         return
@@ -611,7 +619,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
     
     loadEBook()
-  }, [book.filePath, book.fileData, t, book.originalFileName, book.fileType, retryCount])
+  }, [book.id, retryCount])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log('PDF loaded successfully, pages:', numPages)
@@ -982,6 +990,62 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     return colors[color as keyof typeof colors] || colors.yellow
   }
 
+  // Escape special characters for regex
+  const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\\]/g, '\\$&')
+
+  // Escape HTML for safe injection
+  const escapeHtml = (str: string) =>
+    str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+
+  // Apply highlights to the current PDF text layer
+  const applyHighlightsToPDF = () => {
+    if (currentFormat !== 'pdf') return
+    const container = containerRef.current
+    if (!container) return
+
+    const textLayers = container.querySelectorAll('.react-pdf__Page__textLayer')
+    textLayers.forEach((layer) => {
+      const spans = Array.from(layer.querySelectorAll('span'))
+      spans.forEach((span) => {
+        const originalText = span.textContent || ''
+        if (originalText.length === 0) return
+
+        // Build processed string with markers
+        let processed = originalText
+        pageHighlights.forEach((h: any) => {
+          if (!h?.text) return
+          const pattern = new RegExp(escapeRegExp(h.text), 'g')
+          const startMarker = `__HL_START_${(h.color || 'yellow').toUpperCase()}__`
+          const endMarker = '__HL_END__'
+          processed = processed.replace(pattern, `${startMarker}$&${endMarker}`)
+        })
+
+        // Escape entire text for safe HTML
+        let escaped = escapeHtml(processed)
+
+        // Replace markers with highlight spans
+        const uniqueColors = Array.from(new Set(pageHighlights.map((h: any) => h.color || 'yellow')))
+        uniqueColors.forEach((color: string) => {
+          const startMarker = `__HL_START_${color.toUpperCase()}__`
+          const startMarkerRegex = new RegExp(escapeRegExp(startMarker), 'g')
+          escaped = escaped.replace(
+            startMarkerRegex,
+            `<span class="highlight-${color}" data-pdf-highlight="true">`
+          )
+        })
+        escaped = escaped.replace(new RegExp(escapeRegExp('__HL_END__'), 'g'), '</span>')
+
+        // Inject back
+        span.innerHTML = escaped
+      })
+    })
+  }
+
   // Render different ebook formats
   const renderEBookContent = () => {
     if (!fileContent) return null
@@ -1020,6 +1084,10 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               renderAnnotationLayer={true}
               onLoadSuccess={() => {
                 console.log('Page loaded successfully:', pageNumber)
+                // Defer to ensure text layer spans are mounted
+                setTimeout(() => {
+                  applyHighlightsToPDF()
+                }, 0)
               }}
               onLoadError={(error) => {
                 console.error('Page loading failed:', error)
@@ -1083,7 +1151,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 {typeof fileContent === 'string' ? (
                   <div 
                     className="text-sm text-gray-800 prose prose-sm max-w-none select-text"
-                    dangerouslySetInnerHTML={{ __html: fileContent }}
+                    dangerouslySetInnerHTML={{ __html: applyHighlights(fileContent) }}
                   />
                 ) : (
                   <p className="text-gray-500">Loading HTML content...</p>
@@ -1139,7 +1207,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 <h4 className="font-medium text-green-900 mb-2">📚 What you can do:</h4>
                 <ul className="text-sm text-green-800 space-y-1 text-left">
                   <li>• Convert to PDF using Calibre</li>
-                  <li>• Use Amazon's Kindle converter</li>
+                  <li>• Use Amazon&apos;s Kindle converter</li>
                   <li>• Try online MOBI to PDF converters</li>
                 </ul>
               </div>
@@ -1403,10 +1471,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       `}} />
       
       {/* Header */}
-      <header className={`bg-white border-b border-gray-200 px-4 py-3 reader-header transition-all duration-300 ${
-        isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'
-      }`}>
-        <div className="flex items-center justify-between">
+      <header className={`bg-white border-b border-gray-200 px-4 py-3 reader-header transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'}`}>        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={onClose}
@@ -1484,10 +1549,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       </header>
 
       {/* Navigation Bar */}
-      <div className={`bg-gray-50 border-b border-gray-200 px-4 py-2 reader-nav transition-all duration-300 ${
-        isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'
-      }`}>
-        <div className="flex items-center justify-between">
+      <div className={`bg-gray-50 border-b border-gray-200 px-4 py-2 reader-nav transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'}`}>        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={goToPreviousPage}
@@ -1657,8 +1719,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className={`flex justify-center ${isFullscreen ? 'p-0' : 'p-4'}`}>
-          {loading && (
+        <div className={`flex justify-center ${isFullscreen ? 'p-0' : 'p-4'}`}>          {loading && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -1707,9 +1768,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 <button
                   key={color}
                   onClick={() => setHighlightColor(color as any)}
-                  className={`w-6 h-6 rounded-full border-2 ${
-                    highlightColor === color ? 'border-gray-800' : 'border-gray-300'
-                  }`}
+                  className={`w-6 h-6 rounded-full border-2 ${highlightColor === color ? 'border-gray-800' : 'border-gray-300'}`}
                   style={{ backgroundColor: color }}
                 />
               ))}

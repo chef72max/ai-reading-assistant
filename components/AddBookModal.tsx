@@ -94,12 +94,17 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       
       // Set file information
       setSelectedFile(file)
+      const inferredType = getFileType(file.name) as 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' | 'unknown'
+      const normalizedType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' =
+        inferredType === 'pdf' || inferredType === 'epub' || inferredType === 'mobi' || inferredType === 'azw' || inferredType === 'txt' || inferredType === 'html'
+          ? inferredType
+          : 'pdf'
       setFormData(prev => ({
         ...prev,
         title: parsedInfo.title || prev.title,
         author: parsedInfo.author || prev.author,
         filePath: file.name, // Use filename as path
-        fileType: getFileType(file.name)
+        fileType: normalizedType
       }))
       
       // If information was successfully parsed, show notification

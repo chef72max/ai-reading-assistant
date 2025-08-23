@@ -280,7 +280,7 @@ export default function ReadingGoals() {
                     ) : daysRemaining > 0 ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         <Clock className="h-3 w-3 mr-1" />
-                        {t('goals.daysRemaining', { count: daysRemaining })}
+                        {t('goals.daysRemaining')}: {daysRemaining}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -378,7 +378,11 @@ export default function ReadingGoals() {
                     </label>
                     <DatePicker
                       selected={new Date(formData.startDate)}
-                      onChange={(date: Date) => setFormData(prev => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }))}
+                      onChange={(date: Date | null) => {
+                        if (date) {
+                          setFormData(prev => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }))
+                        }
+                      }}
                       className="input-field"
                       dateFormat="yyyy-MM-dd"
                     />
@@ -390,7 +394,11 @@ export default function ReadingGoals() {
                     </label>
                     <DatePicker
                       selected={new Date(formData.endDate)}
-                      onChange={(date: Date) => setFormData(prev => ({ ...prev, endDate: format(date, 'yyyy-MM-dd') }))}
+                      onChange={(date: Date | null) => {
+                        if (date) {
+                          setFormData(prev => ({ ...prev, endDate: format(date, 'yyyy-MM-dd') }))
+                        }
+                      }}
                       className="input-field"
                       dateFormat="yyyy-MM-dd"
                     />

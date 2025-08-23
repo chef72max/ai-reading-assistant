@@ -152,7 +152,7 @@ export default function TestPage() {
             </ul>
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <p className="text-blue-800 text-sm">
-                <strong>Note:</strong> All data is saved in the browser's local storage, so data won't be lost when refreshing the page.
+                <strong>Note:</strong> All data is saved in the browser&apos;s local storage, so data won&apos;t be lost when refreshing the page.
                 You can reload demo data anytime to reset the application state.
               </p>
             </div>

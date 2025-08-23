@@ -419,79 +419,85 @@ export const useReadingStore = create<ReadingStore>()(
     }),
     {
       name: 'reading-store',
-      // Custom serialization to handle File objects and Dates
-      serialize: (state) => {
+      // Custom serialization to handle File objects and Dates and preserve StorageValue shape
+      serialize: (storageValue: any) => {
+        const state = storageValue?.state ?? storageValue
         const serializableState = {
           ...state,
-          books: (state.books || []).map(book => ({
+          books: (state.books || []).map((book: any) => ({
             ...book,
-            addedAt: book.addedAt.toISOString(),
-            lastReadAt: book.lastReadAt.toISOString(),
+            addedAt: book.addedAt instanceof Date ? book.addedAt.toISOString() : new Date(book.addedAt).toISOString(),
+            lastReadAt: book.lastReadAt instanceof Date ? book.lastReadAt.toISOString() : new Date(book.lastReadAt).toISOString(),
             // Remove fileData as it can't be serialized
             fileData: undefined
           })),
-          sessions: (state.sessions || []).map(session => ({
+          sessions: (state.sessions || []).map((session: any) => ({
             ...session,
-            startTime: session.startTime.toISOString(),
-            endTime: session.endTime?.toISOString()
+            startTime: session.startTime instanceof Date ? session.startTime.toISOString() : new Date(session.startTime).toISOString(),
+            endTime: session.endTime ? (session.endTime instanceof Date ? session.endTime.toISOString() : new Date(session.endTime).toISOString()) : undefined
           })),
-          notes: (state.notes || []).map(note => ({
+          notes: (state.notes || []).map((note: any) => ({
             ...note,
-            createdAt: note.createdAt.toISOString()
+            createdAt: note.createdAt instanceof Date ? note.createdAt.toISOString() : new Date(note.createdAt).toISOString()
           })),
-          highlights: (state.highlights || []).map(highlight => ({
+          highlights: (state.highlights || []).map((highlight: any) => ({
             ...highlight,
-            createdAt: highlight.createdAt.toISOString()
+            createdAt: highlight.createdAt instanceof Date ? highlight.createdAt.toISOString() : new Date(highlight.createdAt).toISOString()
           })),
-          goals: (state.goals || []).map(goal => ({
+          goals: (state.goals || []).map((goal: any) => ({
             ...goal,
-            startDate: goal.startDate.toISOString(),
-            endDate: goal.endDate?.toISOString()
+            startDate: goal.startDate instanceof Date ? goal.startDate.toISOString() : new Date(goal.startDate).toISOString(),
+            endDate: goal.endDate ? (goal.endDate instanceof Date ? goal.endDate.toISOString() : new Date(goal.endDate).toISOString()) : undefined
           }))
         }
-        return JSON.stringify(serializableState)
+        return JSON.stringify({ state: serializableState, version: storageValue?.version ?? 0 })
       },
-      // Custom deserialization to restore Date objects
-      deserialize: (str) => {
+      // Custom deserialization to restore Date objects and StorageValue shape
+      deserialize: (str: string) => {
         try {
-          const parsed = JSON.parse(str)
-          return {
-            ...parsed,
-            books: (parsed.books || []).map((book: any) => ({
+          const parsed: any = JSON.parse(str)
+          const rawState = parsed?.state ?? parsed
+          const revivedState = {
+            ...rawState,
+            books: (rawState.books || []).map((book: any) => ({
               ...book,
               addedAt: new Date(book.addedAt),
               lastReadAt: new Date(book.lastReadAt)
             })),
-            sessions: (parsed.sessions || []).map((session: any) => ({
+            sessions: (rawState.sessions || []).map((session: any) => ({
               ...session,
               startTime: new Date(session.startTime),
               endTime: session.endTime ? new Date(session.endTime) : undefined
             })),
-            notes: (parsed.notes || []).map((note: any) => ({
+            notes: (rawState.notes || []).map((note: any) => ({
               ...note,
               createdAt: new Date(note.createdAt)
             })),
-            highlights: (parsed.highlights || []).map((highlight: any) => ({
+            highlights: (rawState.highlights || []).map((highlight: any) => ({
               ...highlight,
               createdAt: new Date(highlight.createdAt)
             })),
-            goals: (parsed.goals || []).map((goal: any) => ({
+            goals: (rawState.goals || []).map((goal: any) => ({
               ...goal,
               startDate: new Date(goal.startDate),
               endDate: goal.endDate ? new Date(goal.endDate) : undefined
             }))
           }
+          return { state: revivedState, version: parsed?.version ?? 0 }
         } catch (error) {
           console.error('Failed to deserialize state:', error)
-          // Return default state if deserialization fails
+          // Return default state if deserialization fails, preserving shape
           return {
-            books: [],
-            currentBook: null,
-            sessions: [],
-            currentSession: null,
-            notes: [],
-            highlights: [],
-            goals: []
+            state: {
+              books: [],
+              currentBook: null,
+              sessions: [],
+              currentSession: null,
+              notes: [],
+              highlights: [],
+              goals: []
+            },
+            version: 0
           }
         }
       }
