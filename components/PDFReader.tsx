@@ -24,12 +24,12 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-// 设置PDF.js worker - 使用CDN worker确保兼容性
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+// 设置PDF.js worker - 使用更可靠的配置
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
 // 备用worker源
 if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/pdf.worker.min.js`
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 }
 
 interface EBookReaderProps {
@@ -104,9 +104,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     try {
       console.log('开始转换blob URL:', blobUrl)
       const response = await fetch(blobUrl)
+      console.log('fetch响应状态:', response.status, response.ok)
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
+      
       const blob = await response.blob()
       console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
       
@@ -114,20 +117,31 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       if (blob.type === 'application/pdf' || blob.type === '') {
         // 对于PDF或未知类型，创建新的blob URL
         const newBlobUrl = URL.createObjectURL(blob)
-        console.log('创建新的blob URL:', newBlobUrl)
+        console.log('创建新的PDF blob URL:', newBlobUrl)
         return newBlobUrl
       } else if (blob.type === 'text/plain' || blob.type === 'text/html') {
         // 对于文本文件，读取内容
+        console.log('读取文本文件内容...')
         const text = await blob.text()
+        console.log('文本内容长度:', text.length)
         return text
       } else {
         // 对于其他格式，创建新的blob URL
         const newBlobUrl = URL.createObjectURL(blob)
-        console.log('创建新的blob URL:', newBlobUrl)
+        console.log('创建新的blob URL:', newBlobUrl, '类型:', blob.type)
         return newBlobUrl
       }
     } catch (error) {
       console.error('转换blob URL失败:', error)
+      if (error instanceof Error) {
+        console.error('错误详情:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        })
+      } else {
+        console.error('未知错误类型:', error)
+      }
       return null
     }
   }
@@ -135,17 +149,25 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   // 使用useEffect来处理文件加载
   useEffect(() => {
     const loadEBook = async () => {
+      console.log('=== 开始加载电子书 ===')
+      console.log('book.filePath:', book.filePath)
+      console.log('book.originalFileName:', book.originalFileName)
+      console.log('book.fileType:', book.fileType)
+      
       if (!book.filePath) {
+        console.error('没有文件路径')
         setError(t('reader.noFileError'))
         setLoading(false)
         return
       }
       
       const format = getFileFormat(book.filePath, book.originalFileName)
+      console.log('检测到的格式:', format)
       setFileFormat(format)
       setCurrentFormat(format)
       
       if (!isSupportedFormat(book.filePath, book.originalFileName)) {
+        console.error('不支持的格式:', format)
         setError(t('reader.unsupportedFormatError').replace('{format}', format))
         setLoading(false)
         return
@@ -162,6 +184,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
           const fileContent = await getFileFromBlob(book.filePath)
           if (fileContent) {
             console.log('成功转换blob URL，设置fileContent状态')
+            console.log('fileContent类型:', typeof fileContent)
+            console.log('fileContent内容:', fileContent)
             setFileContent(fileContent)
             // 不在这里设置loading为false，让具体的渲染组件处理
           } else {
@@ -414,6 +438,25 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             >
               <Download className="h-4 w-4" />
               <span>{t('reader.download')}</span>
+            </button>
+            
+            {/* Debug button for troubleshooting */}
+            <button
+              onClick={() => {
+                console.log('=== 调试信息 ===')
+                console.log('book:', book)
+                console.log('fileContent:', fileContent)
+                console.log('currentFormat:', currentFormat)
+                console.log('loading:', loading)
+                console.log('error:', error)
+                console.log('numPages:', numPages)
+                console.log('pageNumber:', pageNumber)
+              }}
+              className="btn-secondary flex items-center space-x-2"
+              title="Debug Info"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Debug</span>
             </button>
           </div>
         </div>
