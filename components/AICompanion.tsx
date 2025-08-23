@@ -54,7 +54,7 @@ export default function AICompanion() {
         timestamp: new Date()
       }])
     }
-  }, [t])
+  }, [t, messages.length])
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return

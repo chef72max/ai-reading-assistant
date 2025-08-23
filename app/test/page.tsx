@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useReadingStore } from '@/lib/store'
 import { demoBooks, demoNotes, demoGoals } from '@/demo-data'
 
@@ -14,7 +14,7 @@ export default function TestPage() {
     goals 
   } = useReadingStore()
 
-  const loadDemoData = () => {
+  const loadDemoData = useCallback(() => {
     // 清空现有数据
     // 注意：这里只是演示，实际应用中应该有清空功能
     
@@ -51,14 +51,14 @@ export default function TestPage() {
         completed: goal.completed
       })
     })
-  }
+  }, [addBook, addNote, addGoal])
 
   useEffect(() => {
     // 页面加载时自动加载演示数据
     if (books.length === 0) {
       loadDemoData()
     }
-  }, [])
+  }, [books.length, loadDemoData])
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">

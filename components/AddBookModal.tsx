@@ -51,6 +51,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         author: formData.author,
         filePath: bookFilePath,
         originalFileName: selectedFile.name, // 保存原始文件名
+        fileData: selectedFile, // 保存File对象
         fileType: formData.fileType,
       })
       

@@ -7,6 +7,7 @@ export interface Book {
   author: string
   filePath: string
   originalFileName?: string // 原始文件名，用于blob URL的格式检测
+  fileData?: File // 实际的文件对象，用于直接访问
   fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
