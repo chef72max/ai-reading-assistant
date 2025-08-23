@@ -6,7 +6,7 @@ import { Language, defaultLanguage, getTranslation } from '@/lib/i18n'
 interface LanguageContextType {
   language: Language
   setLanguage: (lang: Language) => void
-  t: (key: string) => string
+  t: (key: string) => any
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
@@ -27,7 +27,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('language', language)
   }, [language])
 
-  const t = (key: string): string => {
+  const t = (key: string): any => {
     const keys = key.split('.')
     let value: any = getTranslation(language)
     
@@ -39,7 +39,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    return typeof value === 'string' ? value : key
+    return value
   }
 
   return (

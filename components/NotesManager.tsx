@@ -16,12 +16,27 @@ import {
   Share2
 } from 'lucide-react'
 import { useReadingStore, Note, Book } from '@/lib/store'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { format } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { enUS, zhCN, es } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 
 export default function NotesManager() {
   const { notes, books, addNote, updateNote, deleteNote } = useReadingStore()
+  const { t, language } = useLanguage()
+
+  const getLocale = () => {
+    switch (language) {
+      case 'en':
+        return enUS
+      case 'zh':
+        return zhCN
+      case 'es':
+        return es
+      default:
+        return enUS
+    }
+  }
   const [showAddNote, setShowAddNote] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -152,8 +167,8 @@ export default function NotesManager() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">笔记管理</h2>
-          <p className="text-gray-600 mt-1">管理你的阅读笔记和想法</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('notes.title')}</h2>
+          <p className="text-gray-600 mt-1">{t('notes.subtitle')}</p>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -162,7 +177,7 @@ export default function NotesManager() {
             className="btn-secondary flex items-center space-x-2"
           >
             <Download className="h-4 w-4" />
-            <span>导出</span>
+            <span>{t('common.export')}</span>
           </button>
           
           <button
@@ -170,7 +185,7 @@ export default function NotesManager() {
             className="btn-primary flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
-            <span>新建笔记</span>
+            <span>{t('notes.newNote')}</span>
           </button>
         </div>
       </div>
@@ -181,7 +196,7 @@ export default function NotesManager() {
           <div className="flex items-center space-x-3">
             <FileText className="h-8 w-8 text-primary-600" />
             <div>
-              <p className="text-sm text-gray-600">总笔记</p>
+              <p className="text-sm text-gray-600">{t('notes.totalNotes')}</p>
               <p className="text-2xl font-bold text-gray-900">{notes.length}</p>
             </div>
           </div>
@@ -191,7 +206,7 @@ export default function NotesManager() {
           <div className="flex items-center space-x-3">
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div>
-              <p className="text-sm text-gray-600">涉及书籍</p>
+              <p className="text-sm text-gray-600">{t('notes.booksWithNotes')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {new Set(notes.map(n => n.bookId)).size}
               </p>
@@ -203,7 +218,7 @@ export default function NotesManager() {
           <div className="flex items-center space-x-3">
             <Tag className="h-8 w-8 text-green-600" />
             <div>
-              <p className="text-sm text-gray-600">总标签</p>
+              <p className="text-sm text-gray-600">{t('notes.totalTags')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {new Set(notes.flatMap(n => n.tags)).size}
               </p>
@@ -215,7 +230,7 @@ export default function NotesManager() {
           <div className="flex items-center space-x-3">
             <Calendar className="h-8 w-8 text-purple-600" />
             <div>
-              <p className="text-sm text-gray-600">本月新增</p>
+              <p className="text-sm text-gray-600">{t('stats.month')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {notes.filter(n => {
                   const noteDate = new Date(n.createdAt)

@@ -29,7 +29,6 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
   })
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [fileURL, setFileURL] = useState<string>('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,12 +43,10 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       
       // 在实际应用中，这里会上传文件到服务器
       // 现在我们先使用本地文件URL
-      const bookFilePath = fileURL || selectedFile.name
-      
       addBook({
         title: formData.title,
         author: formData.author,
-        filePath: bookFilePath,
+        filePath: selectedFile.name,
         originalFileName: selectedFile.name, // 保存原始文件名
         fileData: selectedFile, // 保存File对象
         fileType: formData.fileType,
@@ -72,10 +69,6 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       fileType: 'pdf',
     })
     setSelectedFile(null)
-    if (fileURL) {
-      revokeFileURL(fileURL)
-      setFileURL('')
-    }
     onClose()
   }
 
@@ -88,30 +81,6 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         toast.error(validation.error || t('errors.fileValidationFailed'))
         return
       }
-      
-      // 智能解析文件名，提取书籍信息
-      const parsedInfo = parseBookInfo(file.name)
-      console.log('解析到的书籍信息:', parsedInfo)
-      
-      // 设置文件信息
-      setSelectedFile(file)
-      setFormData(prev => ({
-        ...prev,
-        title: parsedInfo.title || prev.title,
-        author: parsedInfo.author || prev.author,
-        filePath: '', // 先清空，等创建blob URL后再设置
-        fileType: getFileType(file.name)
-      }))
-      
-      // 创建文件URL用于预览
-      const url = createFileURL(file)
-      setFileURL(url)
-      
-      // 设置blob URL作为文件路径
-      setFormData(prev => ({
-        ...prev,
-        filePath: url
-      }))
       
       // 如果成功解析到信息，显示提示
       if (parsedInfo.title && parsedInfo.author) {

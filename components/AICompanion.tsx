@@ -73,10 +73,8 @@ export default function AICompanion() {
     setIsLoading(true)
 
     try {
-      // 模拟AI响应
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      const aiResponse = generateAIResponse(inputMessage, selectedBook, selectedPage)
+      // TODO: Replace with actual AI API call
+      const aiResponse = "This is a placeholder response from the AI. Please implement the actual AI logic.";
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -85,7 +83,7 @@ export default function AICompanion() {
         timestamp: new Date(),
         bookId: selectedBook,
         page: selectedPage ? parseInt(selectedPage) : undefined
-      }
+      };
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
@@ -95,76 +93,7 @@ export default function AICompanion() {
     }
   }
 
-  const generateAIResponse = (userInput: string, bookId: string, page: string): string => {
-    const book = books.find(b => b.id === bookId)
-    const bookNotes = notes.filter(n => n.bookId === bookId)
-    
-    if (!book) {
-      return t('ai.selectBookFirst')
-    }
-
-    const lowerInput = userInput.toLowerCase()
-    
-    if (lowerInput.includes('总结') || lowerInput.includes('要点') || lowerInput.includes('summary')) {
-      return t('ai.summary') + '\n\n' +
-             t('ai.coreTheme') + '\n' +
-             `📚 **${t('ai.coreTheme')}**：${t('ai.bookExplores')}\n` +
-             `🔑 **${t('ai.keyConcepts')}**：\n` +
-             `• ${t('ai.concept1')}\n` +
-             `• ${t('ai.concept2')}\n` +
-             `• ${t('ai.concept3')}\n\n` +
-             `💡 **${t('ai.mainInsights')}**：${t('ai.insightDescription')}`
-    }
-    
-    if (lowerInput.includes('问题') || lowerInput.includes('疑问') || lowerInput.includes('question')) {
-      return t('ai.questions') + '\n\n' +
-             t('ai.understandingQuestions') + '\n' +
-             `🤔 **${t('ai.understandingQuestions')}**：\n` +
-             `• ${t('ai.question1')}\n` +
-             `• ${t('ai.question2')}\n\n` +
-             t('ai.thinkingQuestions') + '\n' +
-             `💭 **${t('ai.thinkingQuestions')}**：\n` +
-             `• ${t('ai.question3')}\n` +
-             `• ${t('ai.question4')}\n\n` +
-             t('ai.deepQuestions') + '\n' +
-             `🔍 **${t('ai.deepQuestions')}**：\n` +
-             `• ${t('ai.question5')}\n` +
-             `• ${t('ai.question6')}`
-    }
-    
-    if (lowerInput.includes('思维导图') || lowerInput.includes('导图') || lowerInput.includes('mindmap')) {
-      return t('ai.mindMap') + '\n\n' +
-             t('ai.mainBranches') + '\n' +
-             `🌳 **${t('ai.mainBranches')}**：\n` +
-             `├── ${t('ai.coreConcepts')}\n` +
-             `├── ${t('ai.keyThemes')}\n` +
-             `├── ${t('ai.supportingIdeas')}\n` +
-             `└── ${t('ai.practicalApplications')}`
-    }
-    
-    if (lowerInput.includes('建议') || lowerInput.includes('推荐') || lowerInput.includes('advice')) {
-      return t('ai.readingSuggestions') + '\n\n' +
-             t('ai.readingStrategies') + '\n' +
-             `📖 **${t('ai.readingStrategies')}**：\n` +
-             `• ${t('ai.strategy1')}\n` +
-             `• ${t('ai.strategy2')}\n` +
-             `• ${t('ai.strategy3')}\n\n` +
-             t('ai.focusAreas') + '\n' +
-             `🎯 **${t('ai.focusAreas')}**：\n` +
-             `• ${t('ai.focus1')}\n` +
-             `• ${t('ai.focus2')}\n` +
-             `• ${t('ai.focus3')}\n\n` +
-             t('ai.furtherReading') + '\n' +
-             `📚 **${t('ai.furtherReading')}**：\n` +
-             `• ${t('ai.relatedBooks')}\n` +
-             `• ${t('ai.similarTopics')}`
-    }
-    
-    return t('ai.defaultResponse') + '\n\n' +
-           `${t('ai.basedOnBook')}：\n\n` +
-           `📖 **${t('ai.relatedContent')}**：${t('ai.chapterMentions')}${page || t('ai.relevant')}${t('ai.chapterMentions')}...\n\n` +
-           `💬 **${t('ai.myResponse')}**：${t('ai.responseContent')}`
-  }
+  
 
   const exportConversation = () => {
     const conversationText = messages.map(msg => 
