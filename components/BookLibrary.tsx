@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   BookOpen, 
@@ -30,6 +30,12 @@ export default function BookLibrary() {
   const [searchTerm, setSearchTerm] = useState('')
   const [readingBook, setReadingBook] = useState<Book | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Check hydration status
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   const getDateLocale = () => {
     switch (language) {
@@ -140,7 +146,7 @@ export default function BookLibrary() {
             <BookOpen className="h-8 w-8 text-primary-600" />
             <div>
               <p className="text-sm text-gray-600">{t('library.totalBooks')}</p>
-              <p className="text-2xl font-bold text-gray-900">{books.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{isHydrated ? books.length : 0}</p>
             </div>
           </div>
         </div>
@@ -151,7 +157,7 @@ export default function BookLibrary() {
             <div>
               <p className="text-sm text-gray-600">{t('library.currentlyReading')}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {books.filter(b => b.progress > 0 && b.progress < 100).length}
+                {isHydrated ? books.filter(b => b.progress > 0 && b.progress < 100).length : 0}
               </p>
             </div>
           </div>
@@ -163,7 +169,7 @@ export default function BookLibrary() {
             <div>
               <p className="text-sm text-gray-600">{t('library.completed')}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {books.filter(b => b.progress === 100).length}
+                {isHydrated ? books.filter(b => b.progress === 100).length : 0}
               </p>
             </div>
           </div>
@@ -175,7 +181,7 @@ export default function BookLibrary() {
             <div>
               <p className="text-sm text-gray-600">{t('library.averageProgress')}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {books.length > 0 ? Math.round(books.reduce((acc, b) => acc + b.progress, 0) / books.length) : 0}%
+                {isHydrated && books.length > 0 ? Math.round(books.reduce((acc, b) => acc + b.progress, 0) / books.length) : 0}%
               </p>
             </div>
           </div>
@@ -183,7 +189,7 @@ export default function BookLibrary() {
       </div>
 
       {/* Books Grid */}
-      {sortedBooks.length === 0 ? (
+      {!isHydrated || sortedBooks.length === 0 ? (
         <div className="text-center py-12">
           <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">{t('library.noBooks')}</h3>

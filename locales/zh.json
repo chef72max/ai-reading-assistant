@@ -134,7 +134,10 @@
     "formatNotSupportedDesc": "此格式暂不支持：",
     "convertToPDF": "请转换为PDF格式以获得最佳兼容性",
     "unknownFormat": "未知格式",
-    "unknownFormatDesc": "无法识别的文件格式"
+    "unknownFormatDesc": "无法识别的文件格式",
+    "epubLoading": "正在加载 EPUB 内容...",
+    "epubLoadFailed": "EPUB 加载失败",
+    "epubProcessFailed": "EPUB 处理失败"
   },
   "ai": {
     "title": "AI 阅读助手",

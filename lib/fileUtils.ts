@@ -21,37 +21,69 @@ export const isSupportedFormat = (format: string): boolean => {
 
 // Enhanced format detection that tries to infer format from various sources
 export const detectFileFormat = (filename: string, mimeType?: string): string => {
+  console.log('🔧 detectFileFormat called with:', { filename, mimeType });
+  
   // First try to get format from filename
   let detectedFormat = getFileType(filename)
+  console.log('📋 Format from filename:', detectedFormat);
   
   // If still unknown, try to infer from MIME type
   if (detectedFormat === 'unknown' && mimeType) {
+    console.log('🔄 Trying MIME type detection...', mimeType);
     switch (mimeType) {
       case 'application/pdf':
+        console.log('✅ MIME type indicates PDF');
         return 'pdf'
       case 'application/epub+zip':
+        console.log('✅ MIME type indicates EPUB');
         return 'epub'
       case 'application/x-mobipocket-ebook':
+        console.log('✅ MIME type indicates MOBI');
         return 'mobi'
       case 'application/vnd.amazon.ebook':
+        console.log('✅ MIME type indicates AZW');
         return 'azw'
       case 'text/plain':
+        console.log('✅ MIME type indicates TXT');
         return 'txt'
       case 'text/html':
+        console.log('✅ MIME type indicates HTML');
         return 'html'
       default:
+        console.log('⚠️ Unknown MIME type, trying filename patterns as last resort...');
         // Try to infer from filename patterns as last resort
-        if (filename.toLowerCase().includes('.pdf')) return 'pdf'
-        if (filename.toLowerCase().includes('.epub')) return 'epub'
-        if (filename.toLowerCase().includes('.mobi')) return 'mobi'
-        if (filename.toLowerCase().includes('.txt')) return 'txt'
-        if (filename.toLowerCase().includes('.html') || filename.toLowerCase().includes('.htm')) return 'html'
-        if (filename.toLowerCase().includes('.azw')) return 'azw'
+        const lowerFilename = filename.toLowerCase();
+        if (lowerFilename.includes('.pdf')) {
+          console.log('✅ Found .pdf in filename');
+          return 'pdf';
+        }
+        if (lowerFilename.includes('.epub')) {
+          console.log('✅ Found .epub in filename');
+          return 'epub';
+        }
+        if (lowerFilename.includes('.mobi')) {
+          console.log('✅ Found .mobi in filename');
+          return 'mobi';
+        }
+        if (lowerFilename.includes('.txt')) {
+          console.log('✅ Found .txt in filename');
+          return 'txt';
+        }
+        if (lowerFilename.includes('.html') || lowerFilename.includes('.htm')) {
+          console.log('✅ Found .html/.htm in filename');
+          return 'html';
+        }
+        if (lowerFilename.includes('.azw')) {
+          console.log('✅ Found .azw in filename');
+          return 'azw';
+        }
         
+        console.log('❌ All detection methods failed');
         return 'unknown'
     }
   }
   
+  console.log('📄 Final detected format:', detectedFormat);
   return detectedFormat
 }
 
@@ -194,31 +226,62 @@ export const revokeFileURL = (url: string): void => {
 export function getFileType(filename: string): string {
   if (!filename) return 'unknown';
   
+  console.log('🔍 Detecting file type for:', filename);
+  
+  // First try exact extension match
   const extension = filename.split('.').pop()?.toLowerCase();
+  console.log('📄 Extension found:', extension);
   
   switch (extension) {
     case 'pdf':
+      console.log('✅ Detected PDF format');
       return 'pdf';
     case 'epub':
+      console.log('✅ Detected EPUB format');
       return 'epub';
     case 'mobi':
+      console.log('✅ Detected MOBI format');
       return 'mobi';
     case 'txt':
+      console.log('✅ Detected TXT format');
       return 'txt';
     case 'html':
     case 'htm':
+      console.log('✅ Detected HTML format');
       return 'html';
     case 'azw':
+      console.log('✅ Detected AZW format');
       return 'azw';
     default:
+      console.log('⚠️ Extension not recognized, trying pattern matching...');
       // Try to infer from filename patterns
-      if (filename.toLowerCase().includes('.pdf')) return 'pdf';
-      if (filename.toLowerCase().includes('.epub')) return 'epub';
-      if (filename.toLowerCase().includes('.mobi')) return 'mobi';
-      if (filename.toLowerCase().includes('.txt')) return 'txt';
-      if (filename.toLowerCase().includes('.html') || filename.toLowerCase().includes('.htm')) return 'html';
-      if (filename.toLowerCase().includes('.azw')) return 'azw';
+      const lowerFilename = filename.toLowerCase();
+      if (lowerFilename.includes('.pdf')) {
+        console.log('✅ Found PDF in filename');
+        return 'pdf';
+      }
+      if (lowerFilename.includes('.epub')) {
+        console.log('✅ Found EPUB in filename');
+        return 'epub';
+      }
+      if (lowerFilename.includes('.mobi')) {
+        console.log('✅ Found MOBI in filename');
+        return 'mobi';
+      }
+      if (lowerFilename.includes('.txt')) {
+        console.log('✅ Found TXT in filename');
+        return 'txt';
+      }
+      if (lowerFilename.includes('.html') || lowerFilename.includes('.htm')) {
+        console.log('✅ Found HTML in filename');
+        return 'html';
+      }
+      if (lowerFilename.includes('.azw')) {
+        console.log('✅ Found AZW in filename');
+        return 'azw';
+      }
       
+      console.log('❌ No known format detected, returning unknown');
       return 'unknown';
   }
 }

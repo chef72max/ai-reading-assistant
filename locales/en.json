@@ -178,7 +178,10 @@
     "formatNotSupportedDesc": "This format is not yet supported:",
     "convertToPDF": "Please convert to PDF format for best compatibility",
     "unknownFormat": "Unknown Format",
-    "unknownFormatDesc": "Unable to determine the file format"
+    "unknownFormatDesc": "Unable to determine the file format",
+    "epubLoading": "Loading EPUB content...",
+    "epubLoadFailed": "EPUB loading failed",
+    "epubProcessFailed": "EPUB processing failed"
   },
   "stats": {
     "title": "Reading Statistics",

@@ -10,6 +10,63 @@ const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
 
+// IndexedDB operations for file storage
+const DB_NAME = 'reading-assistant-files'
+const DB_VERSION = 1
+const STORE_NAME = 'files'
+
+// Initialize IndexedDB
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve(request.result)
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+    }
+  })
+}
+
+// Store file in IndexedDB
+const storeFileInIndexedDB = async (bookId: string, file: File): Promise<void> => {
+  try {
+    const db = await initDB()
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    
+    await store.put({ id: bookId, file })
+    console.log(`File stored in IndexedDB for book: ${bookId}`)
+  } catch (error) {
+    console.error('Failed to store file in IndexedDB:', error)
+  }
+}
+
+// Retrieve file from IndexedDB
+export const getFileFromIndexedDB = async (bookId: string): Promise<File | null> => {
+  try {
+    const db = await initDB()
+    const transaction = db.transaction([STORE_NAME], 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    
+    const request = store.get(bookId)
+    return new Promise((resolve, reject) => {
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const result = request.result
+        resolve(result ? result.file : null)
+      }
+    })
+  } catch (error) {
+    console.error('Failed to retrieve file from IndexedDB:', error)
+    return null
+  }
+}
+
 export interface Book {
   id: string
   title: string
@@ -23,6 +80,21 @@ export interface Book {
   progress: number
   addedAt: Date
   lastReadAt: Date
+}
+
+// Serializable version of Book for storage
+export interface SerializableBook {
+  id: string
+  title: string
+  author: string
+  filePath: string
+  originalFileName?: string
+  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
+  totalPages?: number
+  currentPage: number
+  progress: number
+  addedAt: string // ISO string for Date
+  lastReadAt: string // ISO string for Date
 }
 
 export interface ReadingSession {
@@ -99,6 +171,9 @@ interface ReadingStore {
   updateHighlight: (highlightId: string, updates: Partial<Highlight>) => void
   deleteHighlight: (highlightId: string) => void
   
+  // Clear all data
+  clearAllData: () => void
+  
   addGoal: (goal: Omit<ReadingGoal, 'id'>) => void
   updateGoal: (goalId: string, updates: Partial<ReadingGoal>) => void
   deleteGoal: (goalId: string) => void
@@ -124,6 +199,12 @@ export const useReadingStore = create<ReadingStore>()(
           currentPage: 1,
           progress: 0,
         }
+        
+        // Store the file in IndexedDB for persistence
+        if (bookData.fileData) {
+          storeFileInIndexedDB(newBook.id, bookData.fileData)
+        }
+        
         set((state) => ({ books: [...state.books, newBook] }))
       },
       
@@ -257,9 +338,97 @@ export const useReadingStore = create<ReadingStore>()(
           goals: state.goals.filter((goal) => goal.id !== goalId),
         }))
       },
+      
+      clearAllData: () => {
+        set(() => ({
+          books: [],
+          currentBook: null,
+          sessions: [],
+          currentSession: null,
+          notes: [],
+          highlights: [],
+          goals: []
+        }))
+      },
     }),
     {
       name: 'reading-store',
+      // Custom serialization to handle File objects and Dates
+      serialize: (state) => {
+        const serializableState = {
+          ...state,
+          books: (state.books || []).map(book => ({
+            ...book,
+            addedAt: book.addedAt.toISOString(),
+            lastReadAt: book.lastReadAt.toISOString(),
+            // Remove fileData as it can't be serialized
+            fileData: undefined
+          })),
+          sessions: (state.sessions || []).map(session => ({
+            ...session,
+            startTime: session.startTime.toISOString(),
+            endTime: session.endTime?.toISOString()
+          })),
+          notes: (state.notes || []).map(note => ({
+            ...note,
+            createdAt: note.createdAt.toISOString()
+          })),
+          highlights: (state.highlights || []).map(highlight => ({
+            ...highlight,
+            createdAt: highlight.createdAt.toISOString()
+          })),
+          goals: (state.goals || []).map(goal => ({
+            ...goal,
+            startDate: goal.startDate.toISOString(),
+            endDate: goal.endDate?.toISOString()
+          }))
+        }
+        return JSON.stringify(serializableState)
+      },
+      // Custom deserialization to restore Date objects
+      deserialize: (str) => {
+        try {
+          const parsed = JSON.parse(str)
+          return {
+            ...parsed,
+            books: (parsed.books || []).map((book: any) => ({
+              ...book,
+              addedAt: new Date(book.addedAt),
+              lastReadAt: new Date(book.lastReadAt)
+            })),
+            sessions: (parsed.sessions || []).map((session: any) => ({
+              ...session,
+              startTime: new Date(session.startTime),
+              endTime: session.endTime ? new Date(session.endTime) : undefined
+            })),
+            notes: (parsed.notes || []).map((note: any) => ({
+              ...note,
+              createdAt: new Date(note.createdAt)
+            })),
+            highlights: (parsed.highlights || []).map((highlight: any) => ({
+              ...highlight,
+              createdAt: new Date(highlight.createdAt)
+            })),
+            goals: (parsed.goals || []).map((goal: any) => ({
+              ...goal,
+              startDate: new Date(goal.startDate),
+              endDate: goal.endDate ? new Date(goal.endDate) : undefined
+            }))
+          }
+        } catch (error) {
+          console.error('Failed to deserialize state:', error)
+          // Return default state if deserialization fails
+          return {
+            books: [],
+            currentBook: null,
+            sessions: [],
+            currentSession: null,
+            notes: [],
+            highlights: [],
+            goals: []
+          }
+        }
+      }
     }
   )
 )

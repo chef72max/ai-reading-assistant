@@ -178,7 +178,10 @@
     "formatNotSupportedDesc": "Este formato no está soportado aún:",
     "convertToPDF": "Por favor convierte a formato PDF para mejor compatibilidad",
     "unknownFormat": "Formato Desconocido",
-    "unknownFormatDesc": "No se puede determinar el formato del archivo"
+    "unknownFormatDesc": "No se puede determinar el formato del archivo",
+    "epubLoading": "Cargando contenido EPUB...",
+    "epubLoadFailed": "Error al cargar EPUB",
+    "epubProcessFailed": "Error al procesar EPUB"
   },
   "stats": {
     "title": "Estadísticas de Lectura",
