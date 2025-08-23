@@ -21,14 +21,14 @@ export default function DemoPage() {
   const [showUpload, setShowUpload] = useState(false)
 
   const addDemoBook = () => {
-    // 添加一个演示书籍
+    // Add a demo book
     addBook({
-      title: '演示PDF文档',
-      author: 'AI阅读助手',
+      title: 'Demo PDF Document',
+      author: 'AI Reading Assistant',
       filePath: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
       fileType: 'pdf'
     })
-    toast.success('演示书籍已添加！')
+    toast.success('Demo book added successfully!')
   }
 
   const startReading = (book: any) => {
@@ -45,10 +45,10 @@ export default function DemoPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            🧪 AI阅读助手 - 功能演示
+            🧪 AI Reading Assistant - Feature Demo
           </h1>
           <p className="text-xl text-gray-600">
-            体验完整的阅读功能，包括PDF查看、笔记记录、高亮标记等
+            Experience complete reading features including PDF viewing, note taking, highlighting, and more
           </p>
         </div>
 
@@ -60,15 +60,15 @@ export default function DemoPage() {
           >
             <div className="p-6">
               <BookOpen className="h-16 w-16 text-primary-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">添加演示书籍</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Add Demo Book</h3>
               <p className="text-gray-600 mb-4">
-                添加一个在线PDF文档来测试阅读功能
+                Add an online PDF document to test reading features
               </p>
               <button
                 onClick={addDemoBook}
                 className="btn-primary w-full"
               >
-                添加演示书籍
+                Add Demo Book
               </button>
             </div>
           </motion.div>
@@ -79,15 +79,15 @@ export default function DemoPage() {
           >
             <div className="p-6">
               <Upload className="h-16 w-16 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">上传本地文件</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Upload Local File</h3>
               <p className="text-gray-600 mb-4">
-                上传你自己的PDF、EPUB或MOBI文件
+                Upload your own PDF, EPUB, or MOBI files
               </p>
               <button
                 onClick={() => setShowUpload(true)}
                 className="btn-primary w-full"
               >
-                上传文件
+                Upload File
               </button>
             </div>
           </motion.div>
@@ -98,15 +98,15 @@ export default function DemoPage() {
           >
             <div className="p-6">
               <Eye className="h-16 w-16 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">开始阅读</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Reading</h3>
               <p className="text-gray-600 mb-4">
-                选择一本书开始阅读体验
+                Choose a book to start your reading experience
               </p>
               <button
                 onClick={() => window.location.href = '/'}
                 className="btn-primary w-full"
               >
-                进入书库
+                Go to Library
               </button>
             </div>
           </motion.div>
@@ -115,7 +115,7 @@ export default function DemoPage() {
         {/* Current Books */}
         {books.length > 0 && (
           <div className="card mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">当前书籍</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Current Books</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {books.map((book, index) => (
                 <motion.div
@@ -133,7 +133,7 @@ export default function DemoPage() {
                         <FileText className="h-3 w-3" />
                         <span>{book.fileType.toUpperCase()}</span>
                         <span>•</span>
-                        <span>{book.progress}% 完成</span>
+                        <span>{book.progress}% Complete</span>
                       </div>
                     </div>
                   </div>
@@ -144,17 +144,17 @@ export default function DemoPage() {
                       className="w-full btn-primary flex items-center justify-center space-x-2"
                     >
                       <Eye className="h-4 w-4" />
-                      <span>开始阅读</span>
+                      <span>Start Reading</span>
                     </button>
                     
                     <div className="flex space-x-2">
                       <button className="flex-1 btn-secondary text-sm py-2">
                         <Download className="h-3 w-3 mr-1" />
-                        下载
+                        Download
                       </button>
                       <button className="flex-1 btn-secondary text-sm py-2">
                         <Share2 className="h-3 w-3 mr-1" />
-                        分享
+                        Share
                       </button>
                     </div>
                   </div>
@@ -166,7 +166,7 @@ export default function DemoPage() {
 
         {/* Features Overview */}
         <div className="card">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">功能特色</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Feature Highlights</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
@@ -174,9 +174,9 @@ export default function DemoPage() {
                   <BookOpen className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">PDF阅读器</h4>
+                  <h4 className="font-medium text-gray-900">PDF Reader</h4>
                   <p className="text-sm text-gray-600">
-                    支持PDF文档的完整阅读体验，包括缩放、旋转、翻页等功能
+                    Complete PDF reading experience with zoom, rotate, page navigation and more
                   </p>
                 </div>
               </div>
@@ -186,9 +186,9 @@ export default function DemoPage() {
                   <FileText className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">笔记系统</h4>
+                  <h4 className="font-medium text-gray-900">Note System</h4>
                   <p className="text-sm text-gray-600">
-                    在阅读过程中添加笔记、总结、问题和洞察
+                    Add notes, summaries, questions and insights during reading
                   </p>
                 </div>
               </div>
@@ -200,9 +200,9 @@ export default function DemoPage() {
                   <Eye className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">高亮标记</h4>
+                  <h4 className="font-medium text-gray-900">Highlight Marking</h4>
                   <p className="text-sm text-gray-600">
-                    选择文本进行高亮标记，支持多种颜色和添加笔记
+                    Select text for highlighting with multiple colors and note adding
                   </p>
                 </div>
               </div>
@@ -212,9 +212,9 @@ export default function DemoPage() {
                   <Play className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">AI伴读</h4>
+                  <h4 className="font-medium text-gray-900">AI Companion</h4>
                   <p className="text-sm text-gray-600">
-                    与AI助手讨论书籍内容，获得总结和建议
+                    Discuss book content with AI assistant for summaries and recommendations
                   </p>
                 </div>
               </div>

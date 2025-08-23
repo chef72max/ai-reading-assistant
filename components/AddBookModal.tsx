@@ -46,14 +46,14 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
     try {
       setIsUploading(true)
       
-      // 在实际应用中，这里会上传文件到服务器
-      // 现在我们先使用本地文件URL
+      // In actual applications, files would be uploaded to server here
+      // For now, we use local file URLs
       addBook({
         title: formData.title,
         author: formData.author,
         filePath: selectedFile.name,
-        originalFileName: selectedFile.name, // 保存原始文件名
-        fileData: selectedFile, // 保存File对象
+        originalFileName: selectedFile.name, // Save original filename
+        fileData: selectedFile, // Save File object
         fileType: formData.fileType,
       })
       
@@ -81,28 +81,28 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // 验证文件
+      // Validate file
       const validation = validateFile(file)
       if (!validation.valid) {
         toast.error(validation.error || t('errors.fileValidationFailed'))
         return
       }
       
-      // 智能解析文件名，提取书籍信息
+      // Intelligently parse filename to extract book information
       const parsedInfo = parseBookInfo(file.name)
-      console.log('解析到的书籍信息:', parsedInfo)
+      console.log('Parsed book information:', parsedInfo)
       
-      // 设置文件信息
+      // Set file information
       setSelectedFile(file)
       setFormData(prev => ({
         ...prev,
         title: parsedInfo.title || prev.title,
         author: parsedInfo.author || prev.author,
-        filePath: file.name, // 使用文件名作为路径
+        filePath: file.name, // Use filename as path
         fileType: getFileType(file.name)
       }))
       
-      // 如果成功解析到信息，显示提示
+      // If information was successfully parsed, show notification
       if (parsedInfo.title && parsedInfo.author) {
         toast.success(t('bookForm.autoFillSuccess'))
       } else if (parsedInfo.title) {

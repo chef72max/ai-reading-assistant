@@ -50,7 +50,7 @@ export default function ReadingGoals() {
     e.preventDefault()
     
     if (!formData.bookId || !formData.targetPages || !formData.dailyTarget) {
-      toast.error('请填写所有必填字段')
+      toast.error(t('errors.fillAllFields'))
       return
     }
 
@@ -65,11 +65,11 @@ export default function ReadingGoals() {
 
     if (editingGoal) {
       updateGoal(editingGoal.id, goalData)
-      toast.success('目标更新成功！')
+      toast.success(t('success.goalUpdated'))
       setEditingGoal(null)
     } else {
       addGoal(goalData)
-      toast.success('目标创建成功！')
+      toast.success(t('success.goalCreated'))
     }
 
     setShowAddGoal(false)
@@ -89,9 +89,9 @@ export default function ReadingGoals() {
   }
 
   const handleDelete = (goalId: string) => {
-    if (confirm('确定要删除这个阅读目标吗？')) {
+    if (confirm(t('goals.confirmDelete'))) {
       deleteGoal(goalId)
-      toast.success('目标已删除')
+      toast.success(t('success.goalDeleted'))
     }
   }
 
@@ -119,7 +119,7 @@ export default function ReadingGoals() {
 
   const getBookTitle = (bookId: string) => {
     const book = books.find(b => b.id === bookId)
-    return book ? book.title : '未知书籍'
+    return book ? book.title : t('goals.unknownBook')
   }
 
   return (

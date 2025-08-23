@@ -1,4 +1,4 @@
-// 演示数据 - 可以导入到应用中
+// Demo data - can be imported into the application
 export const demoBooks = [
   {
     id: '1',
@@ -89,40 +89,40 @@ export const demoGoals = [
   }
 ]
 
-// 使用说明
+// Usage Instructions
 export const usageInstructions = `
-🎯 如何使用AI阅读助手：
+🎯 How to Use AI Reading Assistant:
 
-1. 📚 书库管理
-   - 点击"添加书籍"来添加你的电子书
-   - 支持PDF、EPUB、MOBI格式
-   - 跟踪阅读进度和阅读历史
+1. 📚 Library Management
+   - Click "Add Book" to add your ebooks
+   - Supports PDF, EPUB, MOBI formats
+   - Track reading progress and reading history
 
-2. 🎯 阅读目标
-   - 设定每日阅读目标
-   - 跟踪完成情况
-   - 获得进度提醒
+2. 🎯 Reading Goals
+   - Set daily reading targets
+   - Track completion status
+   - Receive progress reminders
 
-3. 📝 笔记系统
-   - 记录阅读过程中的想法
-   - 分类笔记类型（笔记、总结、问题、洞察）
-   - 添加标签便于搜索
+3. 📝 Note System
+   - Record thoughts during reading
+   - Categorize note types (notes, summaries, questions, insights)
+   - Add tags for easy searching
 
-4. 🤖 AI伴读
-   - 与AI讨论书籍内容
-   - 获得章节总结
-   - 生成思维导图结构
+4. 🤖 AI Companion
+   - Discuss book content with AI
+   - Get chapter summaries
+   - Generate mind map structures
 
-5. 📊 数据统计
-   - 查看阅读趋势
-   - 分析阅读习惯
-   - 导出详细报告
+5. 📊 Data Statistics
+   - View reading trends
+   - Analyze reading habits
+   - Export detailed reports
 
-💡 提示：这个演示版本包含了示例数据，你可以：
-- 查看各种功能的效果
-- 了解界面布局
-- 测试交互功能
-- 根据需要修改和扩展
+💡 Tips: This demo version includes sample data, you can:
+- See the effects of various features
+- Understand interface layout
+- Test interactive functionality
+- Modify and extend as needed
 
-🚀 开始你的AI阅读之旅吧！
+🚀 Start your AI reading journey now!
 `

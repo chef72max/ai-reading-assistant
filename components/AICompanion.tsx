@@ -44,13 +44,13 @@ export default function AICompanion() {
     scrollToBottom()
   }, [messages])
 
-  // 初始化欢迎消息
+  // Initialize welcome message
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
         id: '1',
         type: 'ai',
-        content: t('ai.welcome') + '\n\n' + t('ai.capabilities').map(cap => '• ' + cap).join('\n') + '\n\n' + t('ai.selectBookPrompt'),
+        content: t('ai.welcome') + '\n\n' + t('ai.capabilities').map((cap: string) => '• ' + cap).join('\n') + '\n\n' + t('ai.selectBookPrompt'),
         timestamp: new Date()
       }])
     }
@@ -93,11 +93,9 @@ export default function AICompanion() {
     }
   }
 
-  
-
   const exportConversation = () => {
     const conversationText = messages.map(msg => 
-      `${msg.type === 'user' ? '你' : 'AI助手'} (${msg.timestamp.toLocaleString()}):\n${msg.content}\n\n`
+      `${msg.type === 'user' ? 'You' : 'AI Assistant'} (${msg.timestamp.toLocaleString()}):\n${msg.content}\n\n`
     ).join('---\n\n')
     
     const blob = new Blob([conversationText], { type: 'text/plain' })
@@ -108,18 +106,18 @@ export default function AICompanion() {
     a.click()
     URL.revokeObjectURL(url)
     
-    toast.success('对话已导出！')
+    toast.success('Conversation exported successfully!')
   }
 
   const clearConversation = () => {
-    if (confirm('确定要清空所有对话吗？')) {
+    if (confirm('Are you sure you want to clear all conversations?')) {
       setMessages([{
         id: '1',
         type: 'ai',
         content: t('ai.conversationCleared') + '\n\n' + t('ai.helpPrompt'),
         timestamp: new Date()
       }])
-      toast.success('对话已清空')
+      toast.success('Conversation cleared')
     }
   }
 
@@ -128,8 +126,8 @@ export default function AICompanion() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">AI伴读助手</h2>
-          <p className="text-gray-600 mt-1">让AI成为你的阅读伙伴，解答疑问、总结要点</p>
+          <h2 className="text-2xl font-bold text-gray-900">AI Reading Companion</h2>
+          <p className="text-gray-600 mt-1">Let AI be your reading partner, answer questions and summarize key points</p>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -138,7 +136,7 @@ export default function AICompanion() {
             className="btn-secondary flex items-center space-x-2"
           >
             <Download className="h-4 w-4" />
-            <span>导出对话</span>
+            <span>Export Conversation</span>
           </button>
           
           <button
@@ -146,7 +144,7 @@ export default function AICompanion() {
             className="btn-secondary flex items-center space-x-2"
           >
             <RotateCcw className="h-4 w-4" />
-            <span>清空对话</span>
+            <span>Clear Conversation</span>
           </button>
         </div>
       </div>
@@ -155,14 +153,14 @@ export default function AICompanion() {
       <div className="card">
         <div className="flex items-center space-x-4">
           <BookOpen className="h-5 w-5 text-primary-600" />
-          <span className="text-sm font-medium text-gray-700">选择书籍：</span>
+          <span className="text-sm font-medium text-gray-700">Select Book:</span>
           
           <select
             value={selectedBook}
             onChange={(e) => setSelectedBook(e.target.value)}
             className="input-field w-64"
           >
-            <option value="">选择一本书</option>
+            <option value="">Choose a book</option>
             {books.map(book => (
               <option key={book.id} value={book.id}>
                 {book.title} - {book.author}
@@ -170,12 +168,12 @@ export default function AICompanion() {
             ))}
           </select>
           
-          <span className="text-sm font-medium text-gray-700">页码：</span>
+          <span className="text-sm font-medium text-gray-700">Page:</span>
           <input
             type="number"
             value={selectedPage}
             onChange={(e) => setSelectedPage(e.target.value)}
-            placeholder="可选"
+            placeholder="Optional"
             className="input-field w-20"
             min="1"
           />
@@ -208,7 +206,7 @@ export default function AICompanion() {
                   {message.bookId && (
                     <span className="ml-2">
                       📖 {books.find(b => b.id === message.bookId)?.title}
-                      {message.page && ` (第${message.page}页)`}
+                      {message.page && ` (Page ${message.page})`}
                     </span>
                   )}
                 </div>
@@ -229,7 +227,7 @@ export default function AICompanion() {
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
-                  <span className="text-sm text-gray-500">AI正在思考...</span>
+                  <span className="text-sm text-gray-500">AI is thinking...</span>
                 </div>
               </div>
             </motion.div>
@@ -246,7 +244,7 @@ export default function AICompanion() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="输入你的问题或请求..."
+              placeholder="Ask your question or request..."
               className="input-field flex-1"
               disabled={isLoading}
             />
@@ -260,7 +258,7 @@ export default function AICompanion() {
           </div>
           
           <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>💡 提示：你可以问我关于书籍内容、总结要点、生成思维导图等问题</span>
+            <span>💡 Tip: You can ask me about book content, summarize key points, generate mind maps, etc.</span>
             <div className="flex items-center space-x-2">
               <button className="hover:text-gray-700">
                 <Share2 className="h-3 w-3" />
@@ -274,7 +272,7 @@ export default function AICompanion() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           onClick={() => {
-            setInputMessage('请帮我总结这本书的主要要点')
+            setInputMessage('Please help me summarize the main points of this book')
             handleSendMessage()
           }}
           className="card hover:shadow-md transition-shadow duration-200 text-left p-4"
@@ -284,15 +282,15 @@ export default function AICompanion() {
               <Lightbulb className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <h4 className="font-medium text-gray-900">总结要点</h4>
-              <p className="text-sm text-gray-600">快速了解书籍核心内容</p>
+              <h4 className="font-medium text-gray-900">Summarize Key Points</h4>
+              <p className="text-sm text-gray-600">Quickly understand the core content of the book</p>
             </div>
           </div>
         </button>
 
         <button
           onClick={() => {
-            setInputMessage('请为这本书生成思维导图')
+            setInputMessage('Please generate a mind map for this book')
             handleSendMessage()
           }}
           className="card hover:shadow-md transition-shadow duration-200 text-left p-4"
@@ -302,15 +300,15 @@ export default function AICompanion() {
               <Brain className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <h4 className="font-medium text-gray-900">思维导图</h4>
-              <p className="text-sm text-gray-600">可视化知识结构</p>
+              <h4 className="font-medium text-gray-900">Generate Mind Map</h4>
+              <p className="text-sm text-gray-600">Visualize the book structure and concepts</p>
             </div>
           </div>
         </button>
 
         <button
           onClick={() => {
-            setInputMessage('请推荐相关的延伸阅读')
+            setInputMessage('Please recommend related extended reading')
             handleSendMessage()
           }}
           className="card hover:shadow-md transition-shadow duration-200 text-left p-4"
@@ -320,8 +318,8 @@ export default function AICompanion() {
               <Sparkles className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <h4 className="font-medium text-gray-900">延伸阅读</h4>
-              <p className="text-sm text-gray-600">发现更多相关资源</p>
+              <h4 className="font-medium text-gray-900">Extended Reading</h4>
+              <p className="text-sm text-gray-600">Discover more related resources</p>
             </div>
           </div>
         </button>

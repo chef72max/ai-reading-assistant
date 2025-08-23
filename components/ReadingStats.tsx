@@ -48,7 +48,7 @@ export default function ReadingStats() {
     }
   }
 
-  // 计算统计数据
+  // Calculate statistics
   const totalBooks = books.length
   const completedBooks = books.filter(b => b.progress === 100).length
   const readingBooks = books.filter(b => b.progress > 0 && b.progress < 100).length
@@ -58,7 +58,7 @@ export default function ReadingStats() {
   const totalGoals = goals.length
   const completedGoals = goals.filter(g => g.completed).length
 
-  // 计算阅读时间
+  // Calculate reading time
   const totalReadingTime = sessions.reduce((acc, s) => {
     if (s.endTime) {
       return acc + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime())
@@ -68,7 +68,7 @@ export default function ReadingStats() {
 
   const averageReadingTime = sessions.length > 0 ? totalReadingTime / sessions.length : 0
 
-  // 生成时间范围数据
+  // Generate time range data
   const getTimeRangeData = () => {
     const now = new Date()
     let startDate: Date
@@ -109,7 +109,7 @@ export default function ReadingStats() {
         date: format(day, 'MM/dd'),
         readingTime: daySessions.reduce((acc, s) => {
           if (s.endTime) {
-            return acc + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / (1000 * 60) // 转换为分钟
+            return acc + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / (1000 * 60) // Convert to minutes
           }
           return acc
         }, 0),
@@ -119,7 +119,7 @@ export default function ReadingStats() {
     })
   }
 
-  // 书籍类型分布
+  // Book type distribution
   const bookTypeData = books.reduce((acc, book) => {
     acc[book.fileType] = (acc[book.fileType] || 0) + 1
     return acc
@@ -132,7 +132,7 @@ export default function ReadingStats() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
 
-  // 阅读进度分布
+  // Reading progress distribution
   const progressRanges = [
     { range: '0%', count: books.filter(b => b.progress === 0).length },
     { range: '1-25%', count: books.filter(b => b.progress > 0 && b.progress <= 25).length },
@@ -142,14 +142,14 @@ export default function ReadingStats() {
     { range: '100%', count: books.filter(b => b.progress === 100).length }
   ]
 
-  // 笔记类型分布
+  // Note type distribution
   const noteTypeData = notes.reduce((acc, note) => {
     acc[note.type] = (acc[note.type] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
   const noteTypeChartData = Object.entries(noteTypeData).map(([type, count]) => ({
-    name: type === 'note' ? '笔记' : type === 'summary' ? '总结' : type === 'question' ? '问题' : '洞察',
+    name: type === 'note' ? 'Note' : type === 'summary' ? 'Summary' : type === 'question' ? 'Question' : 'Insight',
     value: count
   }))
 
@@ -164,7 +164,7 @@ export default function ReadingStats() {
         totalHighlights,
         totalGoals,
         completedGoals,
-        totalReadingTime: Math.round(totalReadingTime / (1000 * 60 * 60)) // 转换为小时
+        totalReadingTime: Math.round(totalReadingTime / (1000 * 60 * 60)) // Convert to hours
       },
       books: books.map(b => ({
         title: b.title,

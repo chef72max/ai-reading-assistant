@@ -19,6 +19,8 @@ import { useReadingStore, Note, Book } from '@/lib/store'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { format } from 'date-fns'
 import { enUS, zhCN, es } from 'date-fns/locale'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import toast from 'react-hot-toast'
 
 export default function NotesManager() {
@@ -39,6 +41,7 @@ export default function NotesManager() {
     }
   }
   const [showAddNote, setShowAddNote] = useState(false)
+  console.log('showAddNote', showAddNote)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -61,7 +64,7 @@ export default function NotesManager() {
     e.preventDefault()
     
     if (!formData.bookId || !formData.content) {
-      toast.error('请填写所有必填字段')
+      toast.error(t('errors.fillAllFields'))
       return
     }
 
@@ -75,11 +78,11 @@ export default function NotesManager() {
 
     if (editingNote) {
       updateNote(editingNote.id, noteData)
-      toast.success('笔记更新成功！')
+      toast.success(t('success.noteUpdated'))
       setEditingNote(null)
     } else {
       addNote(noteData)
-      toast.success('笔记创建成功！')
+      toast.success(t('success.noteAdded'))
     }
 
     setShowAddNote(false)
@@ -99,9 +102,9 @@ export default function NotesManager() {
   }
 
   const handleDelete = (noteId: string) => {
-    if (confirm('确定要删除这条笔记吗？')) {
+    if (confirm(t('notes.confirmDelete'))) {
       deleteNote(noteId)
-      toast.success('笔记已删除')
+      toast.success(t('success.noteDeleted'))
     }
   }
 
@@ -117,7 +120,7 @@ export default function NotesManager() {
 
   const getBookTitle = (bookId: string) => {
     const book = books.find(b => b.id === bookId)
-    return book ? book.title : '未知书籍'
+    return book ? book.title : t('notes.unknownBook')
   }
 
   const getTypeColor = (type: string) => {
@@ -160,7 +163,7 @@ export default function NotesManager() {
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
     
-    toast.success('笔记导出成功！')
+    toast.success('Notes exported successfully!')
   }
 
   return (

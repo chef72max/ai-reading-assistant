@@ -15,10 +15,10 @@ export default function TestPage() {
   } = useReadingStore()
 
   const loadDemoData = useCallback(() => {
-    // 清空现有数据
-    // 注意：这里只是演示，实际应用中应该有清空功能
+    // Clear existing data
+    // Note: This is just a demo, actual applications should have proper data clearing functionality
     
-    // 添加演示书籍
+    // Add demo books
     demoBooks.forEach(book => {
       addBook({
         title: book.title,
@@ -29,7 +29,7 @@ export default function TestPage() {
       })
     })
     
-    // 添加演示笔记
+    // Add demo notes
     demoNotes.forEach(note => {
       addNote({
         bookId: note.bookId,
@@ -40,7 +40,7 @@ export default function TestPage() {
       })
     })
     
-    // 添加演示目标
+    // Add demo goals
     demoGoals.forEach(goal => {
       addGoal({
         bookId: goal.bookId,
@@ -54,7 +54,7 @@ export default function TestPage() {
   }, [addBook, addNote, addGoal])
 
   useEffect(() => {
-    // 页面加载时自动加载演示数据
+    // Automatically load demo data when page loads
     if (books.length === 0) {
       loadDemoData()
     }
@@ -65,55 +65,55 @@ export default function TestPage() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            🧪 AI阅读助手 - 功能测试页面
+            🧪 AI Reading Assistant - Feature Test Page
           </h1>
           <p className="text-gray-600">
-            这个页面用于测试和验证应用的各种功能
+            This page is used to test and verify various features of the application
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 数据统计</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Data Statistics</h2>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>书籍数量:</span>
+                <span>Books Count:</span>
                 <span className="font-medium">{books.length}</span>
               </div>
               <div className="flex justify-between">
-                <span>笔记数量:</span>
+                <span>Notes Count:</span>
                 <span className="font-medium">{notes.length}</span>
               </div>
               <div className="flex justify-between">
-                <span>目标数量:</span>
+                <span>Goals Count:</span>
                 <span className="font-medium">{goals.length}</span>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">🎯 快速操作</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">🎯 Quick Actions</h2>
             <div className="space-y-3">
               <button
                 onClick={loadDemoData}
                 className="w-full btn-primary"
               >
-                重新加载演示数据
+                Reload Demo Data
               </button>
               <button
                 onClick={() => window.location.href = '/'}
                 className="w-full btn-secondary"
               >
-                返回主应用
+                Return to Main App
               </button>
             </div>
           </div>
         </div>
 
         <div className="card mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">📚 当前书籍</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">📚 Current Books</h2>
           {books.length === 0 ? (
-            <p className="text-gray-500">还没有书籍，点击上方按钮加载演示数据</p>
+            <p className="text-gray-500">No books yet, click the button above to load demo data</p>
           ) : (
             <div className="space-y-3">
               {books.map(book => (
@@ -126,7 +126,7 @@ export default function TestPage() {
                     <div className="text-right">
                       <p className="font-medium text-gray-900">{book.progress}%</p>
                       <p className="text-sm text-gray-500">
-                        第 {book.currentPage} 页
+                        Page {book.currentPage}
                       </p>
                     </div>
                   </div>
@@ -137,23 +137,23 @@ export default function TestPage() {
         </div>
 
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">💡 使用提示</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">💡 Usage Tips</h2>
           <div className="prose prose-gray max-w-none">
             <p className="text-gray-700 mb-4">
-              演示数据已加载完成！现在你可以：
+              Demo data has been loaded successfully! Now you can:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700">
-              <li>返回主应用查看完整的界面</li>
-              <li>测试书库管理功能</li>
-              <li>创建和管理阅读目标</li>
-              <li>添加和管理笔记</li>
-              <li>与AI伴读助手对话</li>
-              <li>查看阅读统计和图表</li>
+              <li>Return to the main app to see the complete interface</li>
+              <li>Test library management features</li>
+              <li>Create and manage reading goals</li>
+              <li>Add and manage notes</li>
+              <li>Chat with the AI reading companion</li>
+              <li>View reading statistics and charts</li>
             </ul>
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <p className="text-blue-800 text-sm">
-                <strong>提示：</strong> 所有数据都保存在浏览器的本地存储中，刷新页面数据不会丢失。
-                你可以随时重新加载演示数据来重置应用状态。
+                <strong>Note:</strong> All data is saved in the browser's local storage, so data won't be lost when refreshing the page.
+                You can reload demo data anytime to reset the application state.
               </p>
             </div>
           </div>

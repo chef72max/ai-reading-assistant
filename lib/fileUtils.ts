@@ -1,42 +1,25 @@
-// 文件处理工具函数
+// File processing utility functions
 
-export const getFileType = (fileName: string): 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' => {
-  const extension = fileName.toLowerCase().split('.').pop()
-  switch (extension) {
-    case 'pdf':
-      return 'pdf'
-    case 'epub':
-      return 'epub'
-    case 'mobi':
-      return 'mobi'
-    case 'azw':
-      return 'azw'
-    case 'txt':
-      return 'txt'
-    case 'html':
-    case 'htm':
-      return 'html'
-    default:
-      return 'pdf'
-  }
+export const isSupportedFormat = (format: string): boolean => {
+  return Object.keys(SUPPORTED_FORMATS).includes(format)
 }
 
-// 智能解析文件名，提取书籍标题和作者
+// Intelligently parse filename to extract book title and author
 export const parseBookInfo = (fileName: string): { title: string; author: string } => {
-  // 移除文件扩展名
+  // Remove file extension
   let nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
   
-  // 常见的分隔符模式
+  // Common separator patterns
   const patterns = [
-    // 作者 - 标题 格式
+    // Author - Title format
     /^(.+?)\s*[-–—]\s*(.+)$/,
-    // 标题 by 作者 格式
+    // Title by Author format
     /^(.+?)\s+by\s+(.+)$/i,
-    // 标题 (作者) 格式
+    // Title (Author) format
     /^(.+?)\s*\(([^)]+)\)$/,
-    // 标题 作者 格式（作者在最后）
+    // Title Author format (author at the end)
     /^(.+?)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)$/,
-    // 标题 作者 格式（作者在最后，带点）
+    // Title Author format (author at the end, with period)
     /^(.+?)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)\.$/,
   ]
   
@@ -46,67 +29,67 @@ export const parseBookInfo = (fileName: string): { title: string; author: string
       let title = match[1].trim()
       let author = match[2].trim()
       
-      // 清理标题中的额外信息
-      title = title.replace(/\([^)]*\)/g, '').trim() // 移除括号内容
-      title = title.replace(/\[[^\]]*\]/g, '').trim() // 移除方括号内容
-      title = title.replace(/第.*版/, '').trim() // 移除版本信息
-      title = title.replace(/\d+$/, '').trim() // 移除末尾数字
+      // Clean title of additional information
+      title = title.replace(/\([^)]*\)/g, '').trim() // Remove parentheses content
+      title = title.replace(/\[[^\]]*\]/g, '').trim() // Remove square bracket content
+      title = title.replace(/第.*版/, '').trim() // Remove version information
+      title = title.replace(/\d+$/, '').trim() // Remove trailing numbers
       
-      // 清理作者名
-      author = author.replace(/\([^)]*\)/g, '').trim() // 移除括号内容
-      author = author.replace(/\[[^\]]*\]/g, '').trim() // 移除方括号内容
-      author = author.replace(/\.$/, '').trim() // 移除末尾点号
+      // Clean author name
+      author = author.replace(/\([^)]*\)/g, '').trim() // Remove parentheses content
+      author = author.replace(/\[[^\]]*\]/g, '').trim() // Remove square bracket content
+      author = author.replace(/\.$/, '').trim() // Remove trailing period
       
-      // 如果标题或作者太短，可能是误判
+      // If title or author is too short, it might be misidentified
       if (title.length > 2 && author.length > 2) {
         return { title, author }
       }
     }
   }
   
-  // 如果没有匹配到模式，尝试智能分割
+  // If no pattern matches, try intelligent splitting
   const words = nameWithoutExt.split(/[\s\-_]+/)
   if (words.length >= 3) {
-    // 假设最后2-3个词是作者名
+    // Assume last 2-3 words are author name
     const authorWords = words.slice(-2)
     const titleWords = words.slice(0, -2)
     
     const author = authorWords.join(' ')
     const title = titleWords.join(' ')
     
-    // 验证合理性
+    // Validate reasonableness
     if (title.length > 3 && author.length > 3) {
       return { title, author }
     }
   }
   
-  // 如果都失败了，返回文件名作为标题，作者为空
+  // If all fails, return filename as title, author as empty
   return { 
     title: nameWithoutExt.replace(/[_-]/g, ' ').trim(),
     author: ''
   }
 }
 
-// 清理和格式化书籍标题
+// Clean and format book title
 export const cleanBookTitle = (title: string): string => {
   return title
-    .replace(/\([^)]*\)/g, '') // 移除括号内容
-    .replace(/\[[^\]]*\]/g, '') // 移除方括号内容
-    .replace(/第.*版/, '') // 移除版本信息
-    .replace(/\d+$/, '') // 移除末尾数字
-    .replace(/[_-]/g, ' ') // 替换下划线和横线为空格
-    .replace(/\s+/g, ' ') // 合并多个空格
+    .replace(/\([^)]*\)/g, '') // Remove parentheses content
+    .replace(/\[[^\]]*\]/g, '') // Remove square bracket content
+    .replace(/第.*版/, '') // Remove version information
+    .replace(/\d+$/, '') // Remove trailing numbers
+    .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
+    .replace(/\s+/g, ' ') // Merge multiple spaces
     .trim()
 }
 
-// 清理和格式化作者名
+// Clean and format author name
 export const cleanAuthorName = (author: string): string => {
   return author
-    .replace(/\([^)]*\)/g, '') // 移除括号内容
-    .replace(/\[[^\]]*\]/g, '') // 移除方括号内容
-    .replace(/\.$/, '') // 移除末尾点号
-    .replace(/[_-]/g, ' ') // 替换下划线和横线为空格
-    .replace(/\s+/g, ' ') // 合并多个空格
+    .replace(/\([^)]*\)/g, '') // Remove parentheses content
+    .replace(/\[[^\]]*\]/g, '') // Remove square bracket content
+    .replace(/\.$/, '') // Remove trailing period
+    .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
+    .replace(/\s+/g, ' ') // Merge multiple spaces
     .trim()
 }
 
@@ -129,21 +112,21 @@ export const validateFile = (file: File): { valid: boolean; error?: string } => 
     'application/vnd.amazon.ebook',
     'text/plain',
     'text/html',
-    'application/octet-stream' // 某些MOBI文件可能使用这个类型
+    'application/octet-stream' // Some MOBI files may use this type
   ]
   
-  // 检查文件扩展名
+  // Check file extension
   const fileName = file.name.toLowerCase()
   const allowedExtensions = ['.pdf', '.epub', '.mobi', '.azw', '.txt', '.html', '.htm']
   const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext))
   
   if (file.size > maxSize) {
-    return { valid: false, error: '文件大小不能超过200MB' }
+    return { valid: false, error: 'File size cannot exceed 200MB' }
   }
   
-  // 如果MIME类型不匹配，但扩展名正确，仍然允许
+  // If MIME type doesn't match but extension is correct, still allow
   if (!allowedTypes.includes(file.type) && !hasValidExtension) {
-    return { valid: false, error: '不支持的文件类型，请选择PDF、EPUB、MOBI、AZW、TXT或HTML文件' }
+    return { valid: false, error: 'Unsupported file type, please select PDF, EPUB, MOBI, AZW, TXT or HTML files' }
   }
   
   return { valid: true }
@@ -157,13 +140,13 @@ export const revokeFileURL = (url: string): void => {
   URL.revokeObjectURL(url)
 }
 
-// 模拟文件上传到服务器
+// Simulate file upload to server
 export const uploadFile = async (file: File): Promise<{ success: boolean; filePath?: string; error?: string }> => {
   return new Promise((resolve) => {
-    // 模拟上传延迟
+    // Simulate upload delay
     setTimeout(() => {
-      // 在实际应用中，这里会上传到服务器
-      // 现在我们先返回一个模拟的文件路径
+      // In actual application, this would upload to server
+      // For now, return a simulated file path
       const filePath = `uploads/${Date.now()}-${file.name}`
       resolve({ success: true, filePath })
     }, 1000)

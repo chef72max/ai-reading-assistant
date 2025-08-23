@@ -19,6 +19,7 @@ import {
   FileText as FileTextIcon
 } from 'lucide-react'
 import { useReadingStore, Book } from '@/lib/store'
+import { getFileType, getFileFormat, isSupportedFormat } from '@/lib/fileUtils'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
@@ -47,32 +48,7 @@ const SUPPORTED_FORMATS = {
   html: 'text/html'
 }
 
-// Get file format
-function getFileFormat(filePath: string, originalFileName?: string): string {
-  // Handle blob URL
-  if (filePath.startsWith('blob:')) {
-    // For blob URL, use original filename to determine format
-    if (originalFileName) {
-      const extension = originalFileName.split('.').pop()?.toLowerCase()
-      return extension || 'pdf'
-    }
-    // If no original filename, default to PDF
-    return 'pdf'
-  }
-  const extension = filePath.split('.').pop()?.toLowerCase()
-  return extension || 'unknown'
-}
 
-// Get file type (for filename)
-function getFileType(fileName: string): string {
-  const extension = fileName.split('.').pop()?.toLowerCase()
-  return extension || 'unknown'
-}
-
-// Check if format is supported
-function isSupportedFormat(format: string): boolean {
-  return Object.keys(SUPPORTED_FORMATS).includes(format)
-}
 
 export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const { updateBookProgress, addNote, addHighlight } = useReadingStore()
@@ -84,6 +60,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showNotes, setShowNotes] = useState(false)
+  console.log('showNotes', showNotes)
   const [noteContent, setNoteContent] = useState('')
   const [noteType, setNoteType] = useState<'note' | 'summary' | 'question' | 'insight'>('note')
   const [selectedText, setSelectedText] = useState('')
@@ -110,9 +87,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   useEffect(() => {
     const loadEBook = async () => {
       console.log('=== Starting ebook loading ===')
+      console.log('book object:', book)
       console.log('book.filePath:', book.filePath)
-      console.log('book.originalFileName:', book.originalFileName)
-      console.log('book.fileType:', book.fileType)
       console.log('book.fileData:', book.fileData)
       
       if (!book.filePath && !book.fileData) {
@@ -122,21 +98,22 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         return
       }
       
-      // Prioritize File object, if not available use file path
       let fileToUse: File | string | null = null
       let detectedFormat = ''
       
       if (book.fileData) {
-        // Use File object directly
-        console.log('Using File object:', book.fileData.name, book.fileData.type)
+        console.log('Prioritizing File object from book.fileData')
         fileToUse = book.fileData
         detectedFormat = getFileType(book.fileData.name)
       } else if (book.filePath) {
-        // Use file path
-        detectedFormat = getFileFormat(book.filePath, book.originalFileName)
+        console.log('Using book.filePath as fallback')
+        // Extract filename from path for format detection
+        const fileNameFromPath = book.filePath.split('/').pop() || book.filePath
+        detectedFormat = getFileType(fileNameFromPath)
         fileToUse = book.filePath
       }
       
+      console.log('Determined fileToUse:', fileToUse)
       console.log('Detected format:', detectedFormat)
       setFileFormat(detectedFormat)
       setCurrentFormat(detectedFormat)
@@ -152,17 +129,31 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       setLoading(true)
       setError(null)
       
-      // If it's a File object, use it directly
       if (fileToUse instanceof File) {
-        console.log('Using File object directly')
+        console.log('Setting fileContent directly from File object')
         setFileContent(fileToUse)
         setLoading(false)
-        return
+      } else if (typeof fileToUse === 'string') {
+        console.log('Fetching file content from URL:', fileToUse)
+        try {
+          const response = await fetch(fileToUse)
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          const blob = await response.blob()
+          const objectUrl = URL.createObjectURL(blob)
+          console.log('Created object URL:', objectUrl)
+          setFileContent(objectUrl)
+          setLoading(false)
+        } catch (err) {
+          console.error('File loading failed during fetch:', err)
+          setError(t('reader.loadError'))
+          setLoading(false)
+        }
+      } else {
+        setError(t('reader.noFileError'))
+        setLoading(false)
       }
-
-      console.log('Using direct file path:', fileToUse)
-      setFileContent(fileToUse)
-      setLoading(false)
     }
     
     loadEBook()
