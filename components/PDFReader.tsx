@@ -32,7 +32,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css'
 import ePub from 'epubjs'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-// Highlight styles - 荧光笔效果
+// Highlight styles 
 const highlightStyles = `
   .highlight-yellow { 
     background: linear-gradient(180deg, transparent 30%, #FFFF00 30%, #FFFF00 70%, transparent 70%) !important;
