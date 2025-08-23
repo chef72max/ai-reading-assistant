@@ -93,77 +93,27 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
 
-  // 处理blob URL转换为File对象
-  const getFileFromBlob = async (blobUrl: string): Promise<File | null> => {
-    try {
-      console.log('开始转换blob URL:', blobUrl)
-      const response = await fetch(blobUrl)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const blob = await response.blob()
-      console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
-      
-      // 创建新的blob URL，确保类型正确
-      const newBlobUrl = URL.createObjectURL(blob)
-      console.log('创建新的blob URL:', newBlobUrl)
-      
-      return newBlobUrl
-    } catch (error) {
-      console.error('转换blob URL失败:', error)
-      return null
-    }
-  }
-
   // 使用useEffect来处理文件加载
   useEffect(() => {
-    const loadPDF = async () => {
-      if (!book.filePath) {
-        setError(t('reader.noFileError'))
-        setLoading(false)
-        return
-      }
-      
-      const format = getFileFormat(book.filePath)
-      setFileFormat(format)
-      
-      if (!isSupportedFormat(book.filePath)) {
-        setError(t('reader.unsupportedFormatError').replace('{format}', format))
-        setLoading(false)
-        return
-      }
-      
-      console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
-      setLoading(true)
-      setError(null)
-      
-      // 如果是blob URL，转换为新的blob URL
-      if (book.filePath.startsWith('blob:')) {
-        try {
-          console.log('检测到blob URL，开始转换...')
-          const newBlobUrl = await getFileFromBlob(book.filePath)
-          if (newBlobUrl) {
-            console.log('成功转换blob URL，设置pdfFile状态')
-            setPdfFile(newBlobUrl)
-            // 不在这里设置loading为false，让Document组件处理
-          } else {
-            console.error('转换blob URL失败')
-            setError(t('reader.loadError'))
-            setLoading(false)
-          }
-        } catch (error) {
-          console.error('转换blob URL过程中出错:', error)
-          setError(t('reader.loadError'))
-          setLoading(false)
-        }
-      } else {
-        console.log('使用直接文件路径:', book.filePath)
-        setPdfFile(book.filePath)
-        setLoading(false)
-      }
+    if (!book.filePath) {
+      setError(t('reader.noFileError'))
+      setLoading(false)
+      return
     }
-    
-    loadPDF()
+
+    const format = getFileFormat(book.filePath)
+    setFileFormat(format)
+
+    if (!isSupportedFormat(book.filePath)) {
+      setError(t('reader.unsupportedFormatError').replace('{format}', format))
+      setLoading(false)
+      return
+    }
+
+    console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
+    setLoading(true)
+    setError(null)
+    setPdfFile(book.filePath)
   }, [book.filePath, t])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -357,7 +307,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       {/* PDF Viewer */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-auto bg-gray-100"
+        className="flex-1 overflow-auto bg-gray-100 h-full"
         onMouseUp={handleTextSelection}
       >
         <div className="flex justify-center p-4">
@@ -376,29 +326,6 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               file={pdfFile}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
-              loading={
-                <div className="flex items-center justify-center py-20">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">{t('reader.loadingPDF')}</p>
-                  </div>
-                </div>
-              }
-              error={
-                <div className="flex items-center justify-center py-20">
-                  <div className="text-center">
-                    <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('reader.loadFailed')}</h3>
-                    <p className="text-gray-600">{t('reader.loadError')}</p>
-                    <button
-                      onClick={() => setPdfFile(null)}
-                      className="btn-secondary mt-4"
-                    >
-                      {t('reader.returnToLibrary')}
-                    </button>
-                  </div>
-                </div>
-              }
             >
               <Page
                 pageNumber={pageNumber}
@@ -407,17 +334,15 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 className="shadow-lg"
                 renderTextLayer={true}
                 renderAnnotationLayer={true}
-                onLoadSuccess={() => {
-                  console.log('页面加载成功:', pageNumber)
-                }}
                 onLoadError={(error) => {
-                  console.error('页面加载失败:', error)
+                  console.error('Page load error:', error)
+                  setError(t('reader.loadError'))
                 }}
               />
             </Document>
           )}
           
-          {!loading && !pdfFile && (
+          {!loading && !pdfFile && !error && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
