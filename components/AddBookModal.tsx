@@ -29,10 +29,15 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
   })
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitted(true)
     
+    console.log('formData', formData)
+    console.log('selectedFile', selectedFile)
+
     if (!formData.title || !formData.author || !selectedFile) {
       toast.error(t('errors.fillAllFields'))
       return
@@ -69,6 +74,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       fileType: 'pdf',
     })
     setSelectedFile(null)
+    setSubmitted(false)
     onClose()
   }
 
@@ -81,6 +87,20 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
         toast.error(validation.error || t('errors.fileValidationFailed'))
         return
       }
+      
+      // 智能解析文件名，提取书籍信息
+      const parsedInfo = parseBookInfo(file.name)
+      console.log('解析到的书籍信息:', parsedInfo)
+      
+      // 设置文件信息
+      setSelectedFile(file)
+      setFormData(prev => ({
+        ...prev,
+        title: parsedInfo.title || prev.title,
+        author: parsedInfo.author || prev.author,
+        filePath: file.name, // 使用文件名作为路径
+        fileType: getFileType(file.name)
+      }))
       
       // 如果成功解析到信息，显示提示
       if (parsedInfo.title && parsedInfo.author) {
@@ -140,6 +160,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       className="input-field pl-10 pr-12"
                       placeholder={t('bookForm.enterBookTitle')}
                       required
+                      aria-invalid={submitted && !formData.title}
                     />
                     <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     {selectedFile && (
@@ -173,6 +194,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       className="input-field pl-10 pr-12"
                       placeholder={t('bookForm.enterAuthorName')}
                       required
+                      aria-invalid={submitted && !formData.author}
                     />
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     {selectedFile && (
@@ -224,6 +246,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                       className="hidden"
                       id="file-upload"
                       required
+                      aria-invalid={submitted && !selectedFile}
                     />
                     <label
                       htmlFor="file-upload"

@@ -24,10 +24,10 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-// 设置PDF.js worker - 使用更可靠的配置
+// Configure PDF.js worker - using more reliable configuration
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
-// 备用worker源
+// Fallback worker source
 if (!pdfjs.GlobalWorkerOptions.workerSrc) {
   pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 }
@@ -37,7 +37,7 @@ interface EBookReaderProps {
   onClose: () => void
 }
 
-// 支持的文件格式
+// Supported file formats
 const SUPPORTED_FORMATS = {
   pdf: 'application/pdf',
   epub: 'application/epub+zip',
@@ -47,29 +47,29 @@ const SUPPORTED_FORMATS = {
   html: 'text/html'
 }
 
-// 获取文件格式
+// Get file format
 function getFileFormat(filePath: string, originalFileName?: string): string {
-  // 处理blob URL
+  // Handle blob URL
   if (filePath.startsWith('blob:')) {
-    // 对于blob URL，使用原始文件名来判断格式
+    // For blob URL, use original filename to determine format
     if (originalFileName) {
       const extension = originalFileName.split('.').pop()?.toLowerCase()
       return extension || 'pdf'
     }
-    // 如果没有原始文件名，默认假设是PDF
+    // If no original filename, default to PDF
     return 'pdf'
   }
   const extension = filePath.split('.').pop()?.toLowerCase()
   return extension || 'unknown'
 }
 
-// 获取文件类型 (用于文件名)
+// Get file type (for filename)
 function getFileType(fileName: string): string {
   const extension = fileName.split('.').pop()?.toLowerCase()
   return extension || 'unknown'
 }
 
-// 检查是否支持该格式
+// Check if format is supported
 function isSupportedFormat(format: string): boolean {
   return Object.keys(SUPPORTED_FORMATS).includes(format)
 }
@@ -96,7 +96,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // 更新阅读进度
+  // Update reading progress
   useEffect(() => {
     if (numPages > 0) {
       const progress = Math.round((pageNumber / numPages) * 100)
@@ -104,171 +104,79 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
 
-  // 处理blob URL转换为可用的文件内容
-  const getFileFromBlob = async (blobUrl: string): Promise<File | string | null> => {
-    try {
-      console.log('开始转换blob URL:', blobUrl)
-      const response = await fetch(blobUrl)
-      console.log('fetch响应状态:', response.status, response.ok)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const blob = await response.blob()
-      console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
-      
-      // 根据文件类型处理
-      if (blob.type === 'application/pdf' || blob.type === '') {
-        // 对于PDF或未知类型，创建新的blob URL
-        const newBlobUrl = URL.createObjectURL(blob)
-        console.log('创建新的PDF blob URL:', newBlobUrl)
-        return newBlobUrl
-      } else if (blob.type === 'text/plain' || blob.type === 'text/html') {
-        // 对于文本文件，读取内容
-        console.log('读取文本文件内容...')
-        const text = await blob.text()
-        console.log('文本内容长度:', text.length)
-        return text
-      } else {
-        // 对于其他格式，创建新的blob URL
-        const newBlobUrl = URL.createObjectURL(blob)
-        console.log('创建新的blob URL:', newBlobUrl, '类型:', blob.type)
-        return newBlobUrl
-      }
-    } catch (error) {
-      console.error('转换blob URL失败:', error)
-      if (error instanceof Error) {
-        console.error('错误详情:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        })
-      } else {
-        console.error('未知错误类型:', error)
-      }
-      return null
-    }
-  }
+  
 
-  // 使用useEffect来处理文件加载
+  // Use useEffect to handle file loading
   useEffect(() => {
     const loadEBook = async () => {
-      console.log('=== 开始加载电子书 ===')
+      console.log('=== Starting ebook loading ===')
       console.log('book.filePath:', book.filePath)
       console.log('book.originalFileName:', book.originalFileName)
       console.log('book.fileType:', book.fileType)
       console.log('book.fileData:', book.fileData)
       
       if (!book.filePath && !book.fileData) {
-        console.error('没有文件路径或文件数据')
+        console.error('No file path or file data found')
         setError(t('reader.noFileError'))
         setLoading(false)
         return
       }
       
-      // 优先使用File对象，如果没有则使用文件路径
+      // Prioritize File object, if not available use file path
       let fileToUse: File | string | null = null
       let detectedFormat = ''
       
       if (book.fileData) {
-        // 直接使用File对象
-        console.log('使用File对象:', book.fileData.name, book.fileData.type)
+        // Use File object directly
+        console.log('Using File object:', book.fileData.name, book.fileData.type)
         fileToUse = book.fileData
         detectedFormat = getFileType(book.fileData.name)
       } else if (book.filePath) {
-        // 使用文件路径
+        // Use file path
         detectedFormat = getFileFormat(book.filePath, book.originalFileName)
         fileToUse = book.filePath
       }
       
-      console.log('检测到的格式:', detectedFormat)
+      console.log('Detected format:', detectedFormat)
       setFileFormat(detectedFormat)
       setCurrentFormat(detectedFormat)
       
       if (!isSupportedFormat(detectedFormat)) {
-        console.error('不支持的格式:', detectedFormat)
+        console.error('Unsupported format:', detectedFormat)
         setError(t('reader.unsupportedFormatError').replace('{format}', detectedFormat))
         setLoading(false)
         return
       }
       
-      console.log('尝试加载电子书文件，格式:', detectedFormat)
+      console.log('Attempting to load ebook file, format:', detectedFormat)
       setLoading(true)
       setError(null)
       
-      // 如果是File对象，直接使用
+      // If it's a File object, use it directly
       if (fileToUse instanceof File) {
-        console.log('直接使用File对象')
+        console.log('Using File object directly')
         setFileContent(fileToUse)
         setLoading(false)
         return
       }
-      
-      // 如果是blob URL，尝试转换
-      if (typeof fileToUse === 'string' && fileToUse.startsWith('blob:')) {
-        try {
-          console.log('检测到blob URL，开始转换...')
-          const convertedContent = await getFileFromBlob(fileToUse)
-          if (convertedContent) {
-            console.log('成功转换blob URL，设置fileContent状态')
-            console.log('convertedContent类型:', typeof convertedContent)
-            setFileContent(convertedContent)
-          } else {
-            console.error('转换blob URL失败')
-            // 使用文件类型作为fallback
-            if (book.fileType) {
-              console.log('使用book.fileType作为fallback:', book.fileType)
-              setCurrentFormat(book.fileType)
-              // 对于PDF，尝试直接使用blob URL
-              if (book.fileType === 'pdf') {
-                setFileContent(fileToUse)
-              } else {
-                setError(t('reader.loadError'))
-                setLoading(false)
-              }
-            } else {
-              setError(t('reader.loadError'))
-              setLoading(false)
-            }
-          }
-        } catch (error) {
-          console.error('转换blob URL过程中出错:', error)
-          // 使用文件类型作为fallback
-          if (book.fileType) {
-            console.log('使用book.fileType作为fallback:', book.fileType)
-            setCurrentFormat(book.fileType)
-            // 对于PDF，尝试直接使用blob URL
-            if (book.fileType === 'pdf') {
-              setFileContent(fileToUse)
-            } else {
-              setError(t('reader.loadError'))
-              setLoading(false)
-            }
-          } else {
-            setError(t('reader.loadError'))
-            setLoading(false)
-          }
-        }
-      } else {
-        console.log('使用直接文件路径:', fileToUse)
-        setFileContent(fileToUse)
-        setLoading(false)
-      }
+
+      console.log('Using direct file path:', fileToUse)
+      setFileContent(fileToUse)
+      setLoading(false)
     }
     
     loadEBook()
   }, [book.filePath, book.fileData, t, book.originalFileName, book.fileType])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    console.log('PDF加载成功，页数:', numPages)
+    console.log('PDF loaded successfully, pages:', numPages)
     setNumPages(numPages)
     setLoading(false)
     setError(null)
   }
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('PDF加载错误:', error)
+    console.error('PDF loading error:', error)
     setError(t('reader.loadError'))
     setLoading(false)
   }
@@ -284,8 +192,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      // 这里可以处理文件上传逻辑
-      console.log('选择的文件:', file.name)
+      // Handle file upload logic here
+      console.log('Selected file:', file.name)
     }
   }
 
@@ -328,11 +236,11 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   }
 
   const downloadPDF = () => {
-    // 这里可以实现PDF下载逻辑
-    console.log('下载PDF:', book.title)
+    // Implement PDF download logic here
+    console.log('Downloading PDF:', book.title)
   }
 
-  // 渲染不同格式的电子书
+  // Render different ebook formats
   const renderEBookContent = () => {
     if (!fileContent) return null
 
@@ -369,10 +277,10 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               renderTextLayer={true}
               renderAnnotationLayer={true}
               onLoadSuccess={() => {
-                console.log('页面加载成功:', pageNumber)
+                console.log('Page loaded successfully:', pageNumber)
               }}
               onLoadError={(error) => {
-                console.error('页面加载失败:', error)
+                console.error('Page loading failed:', error)
               }}
             />
           </Document>
@@ -492,24 +400,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               <span>{t('reader.download')}</span>
             </button>
             
-            {/* Debug button for troubleshooting */}
-            <button
-              onClick={() => {
-                console.log('=== 调试信息 ===')
-                console.log('book:', book)
-                console.log('fileContent:', fileContent)
-                console.log('currentFormat:', currentFormat)
-                console.log('loading:', loading)
-                console.log('error:', error)
-                console.log('numPages:', numPages)
-                console.log('pageNumber:', pageNumber)
-              }}
-              className="btn-secondary flex items-center space-x-2"
-              title="Debug Info"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Debug</span>
-            </button>
+            
           </div>
         </div>
       </header>

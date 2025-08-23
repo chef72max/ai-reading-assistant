@@ -41,7 +41,12 @@
     "noBooks": "No books yet",
     "noBooksDesc": "Add your first book to start your reading journey",
     "confirmDelete": "Are you sure you want to delete '{title}'?",
-    "bookDeleted": "Book deleted successfully"
+    "bookDeleted": "Book deleted successfully",
+    "allBooks": "All Books",
+    "notStarted": "Not Started",
+    "sortByRecent": "Sort by Recent",
+    "sortByTitle": "Sort by Title",
+    "sortByProgress": "Sort by Progress"
   },
   "bookForm": {
     "addNewBook": "Add New Book",
@@ -102,7 +107,9 @@
     "allBooks": "All Books",
     "searchPlaceholder": "Search notes by content or tags...",
     "noNotes": "No notes yet",
-    "noNotesDesc": "Create your first note to start recording ideas"
+    "noNotesDesc": "Create your first note to start recording ideas",
+    "commaSeparated": "comma separated",
+    "tagsPlaceholder": "Important, Concept, Question"
   },
   "ai": {
     "title": "AI Reading Companion",
@@ -208,6 +215,7 @@
     "highlightAdded": "Highlight added successfully!",
     "conversationExported": "Chat exported successfully!",
     "notesExported": "Notes exported successfully!",
-    "statsExported": "Statistics exported successfully!"
+    "statsExported": "Statistics exported successfully!",
+    "bookDownloaded": "Book downloaded successfully!"
   }
 }

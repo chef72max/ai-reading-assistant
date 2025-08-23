@@ -41,7 +41,12 @@
     "noBooks": "还没有书籍",
     "noBooksDesc": "添加你的第一本书开始阅读之旅",
     "confirmDelete": "确定要删除《{title}》吗？",
-    "bookDeleted": "书籍删除成功"
+    "bookDeleted": "书籍删除成功",
+    "allBooks": "所有书籍",
+    "notStarted": "未开始",
+    "sortByRecent": "按最近阅读排序",
+    "sortByTitle": "按标题排序",
+    "sortByProgress": "按进度排序"
   },
   "bookForm": {
     "addNewBook": "添加新书籍",
@@ -102,7 +107,9 @@
     "allBooks": "所有书籍",
     "searchPlaceholder": "搜索笔记内容或标签...",
     "noNotes": "还没有笔记",
-    "noNotesDesc": "创建你的第一条笔记开始记录想法"
+    "noNotesDesc": "创建你的第一条笔记开始记录想法",
+    "commaSeparated": "用逗号分隔",
+    "tagsPlaceholder": "重要, 概念, 问题"
   },
   "ai": {
     "title": "AI阅读助手",
@@ -208,6 +215,7 @@
     "highlightAdded": "高亮添加成功！",
     "conversationExported": "对话导出成功！",
     "notesExported": "笔记导出成功！",
-    "statsExported": "统计导出成功！"
+    "statsExported": "统计导出成功！",
+    "bookDownloaded": "书籍下载成功！"
   }
 }

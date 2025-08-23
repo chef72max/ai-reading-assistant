@@ -23,6 +23,7 @@ import toast from 'react-hot-toast'
 
 export default function NotesManager() {
   const { notes, books, addNote, updateNote, deleteNote } = useReadingStore()
+  console.log('notes', notes)
   const { t, language } = useLanguage()
 
   const getLocale = () => {
@@ -131,11 +132,11 @@ export default function NotesManager() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'note': return '笔记'
-      case 'summary': return '总结'
-      case 'question': return '问题'
-      case 'insight': return '洞察'
-      default: return '笔记'
+      case 'note': return t('notes.note')
+      case 'summary': return t('notes.summary')
+      case 'question': return t('notes.question')
+      case 'insight': return t('notes.insight')
+      default: return t('notes.note')
     }
   }
 
@@ -252,7 +253,7 @@ export default function NotesManager() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="搜索笔记内容或标签..."
+                placeholder={t('notes.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input-field pl-10"
@@ -265,11 +266,11 @@ export default function NotesManager() {
             onChange={(e) => setFilterType(e.target.value)}
             className="input-field w-40"
           >
-            <option value="all">所有类型</option>
-            <option value="note">笔记</option>
-            <option value="summary">总结</option>
-            <option value="question">问题</option>
-            <option value="insight">洞察</option>
+            <option value="all">{t('notes.allTypes')}</option>
+            <option value="note">{t('notes.note')}</option>
+            <option value="summary">{t('notes.summary')}</option>
+            <option value="question">{t('notes.question')}</option>
+            <option value="insight">{t('notes.insight')}</option>
           </select>
           
           <select
@@ -277,7 +278,7 @@ export default function NotesManager() {
             onChange={(e) => setFilterBook(e.target.value)}
             className="input-field w-48"
           >
-            <option value="all">所有书籍</option>
+            <option value="all">{t('notes.allBooks')}</option>
             {books.map(book => (
               <option key={book.id} value={book.id}>
                 {book.title}
@@ -291,8 +292,8 @@ export default function NotesManager() {
       {filteredNotes.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">还没有笔记</h3>
-          <p className="text-gray-600">创建你的第一条笔记开始记录想法</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('notes.noNotes')}</h3>
+          <p className="text-gray-600">{t('notes.noNotesDesc')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -310,7 +311,7 @@ export default function NotesManager() {
                     {getTypeLabel(note.type)}
                   </span>
                   <span className="text-sm text-gray-500">
-                    第 {note.page} 页
+                    {t('notes.page')} {note.page}
                   </span>
                 </div>
                 
@@ -353,10 +354,10 @@ export default function NotesManager() {
               )}
 
               <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>{format(new Date(note.createdAt), 'yyyy-MM-dd HH:mm', { locale: zhCN })}</span>
+                <span>{format(new Date(note.createdAt), 'yyyy-MM-dd HH:mm', { locale: getLocale() })}</span>
                 <button className="flex items-center space-x-1 hover:text-gray-700">
                   <Share2 className="h-3 w-3" />
-                  <span>分享</span>
+                  <span>{t('common.share')}</span>
                 </button>
               </div>
             </motion.div>
@@ -373,7 +374,7 @@ export default function NotesManager() {
             <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl mx-auto">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {editingNote ? '编辑笔记' : '新建笔记'}
+                  {editingNote ? t('notes.editNote') : t('notes.newNote')}
                 </h3>
                 <button
                   onClick={() => {
@@ -391,7 +392,7 @@ export default function NotesManager() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      选择书籍 *
+                      {t('notes.book')} *
                     </label>
                     <select
                       value={formData.bookId}
@@ -399,7 +400,7 @@ export default function NotesManager() {
                       className="input-field"
                       required
                     >
-                      <option value="">选择一本书</option>
+                      <option value="">{t('goals.selectBook')}</option>
                       {books.map(book => (
                         <option key={book.id} value={book.id}>
                           {book.title} - {book.author}
@@ -410,7 +411,7 @@ export default function NotesManager() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      页码
+                      {t('notes.page')}
                     </label>
                     <input
                       type="number"
@@ -425,43 +426,43 @@ export default function NotesManager() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    笔记类型
+                    {t('notes.noteType')}
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
                     className="input-field"
                   >
-                    <option value="note">笔记</option>
-                    <option value="summary">总结</option>
-                    <option value="question">问题</option>
-                    <option value="insight">洞察</option>
+                    <option value="note">{t('notes.note')}</option>
+                    <option value="summary">{t('notes.summary')}</option>
+                    <option value="question">{t('notes.question')}</option>
+                    <option value="insight">{t('notes.insight')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    笔记内容 *
+                    {t('notes.content')} *
                   </label>
                   <textarea
                     value={formData.content}
                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                     className="input-field min-h-[120px] resize-none"
-                    placeholder="写下你的想法、问题或总结..."
+                    placeholder={t('notes.writeYourThoughts')}
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    标签 (用逗号分隔)
+                    {t('notes.tags')} ({t('notes.commaSeparated')})
                   </label>
                   <input
                     type="text"
                     value={formData.tags}
                     onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                     className="input-field"
-                    placeholder="重要, 概念, 问题"
+                    placeholder={t('notes.tagsPlaceholder')}
                   />
                 </div>
 
@@ -475,13 +476,13 @@ export default function NotesManager() {
                     }}
                     className="btn-secondary flex-1"
                   >
-                    取消
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="btn-primary flex-1"
                   >
-                    {editingNote ? '更新笔记' : '创建笔记'}
+                    {editingNote ? t('common.update') : t('common.create')}
                   </button>
                 </div>
               </form>

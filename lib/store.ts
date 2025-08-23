@@ -6,8 +6,8 @@ export interface Book {
   title: string
   author: string
   filePath: string
-  originalFileName?: string // 原始文件名，用于blob URL的格式检测
-  fileData?: File // 实际的文件对象，用于直接访问
+  originalFileName?: string // Original filename for blob URL format detection
+  fileData?: File // Actual file object for direct access
   fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
@@ -123,13 +123,22 @@ export const useReadingStore = create<ReadingStore>()(
       },
       
       updateBookProgress: (bookId, page, progress) => {
-        set((state) => ({
-          books: state.books.map((book) =>
+        set((state) => {
+          const newBooks = state.books.map((book) =>
             book.id === bookId
               ? { ...book, currentPage: page, progress, lastReadAt: new Date() }
               : book
-          ),
-        }))
+          )
+
+          const newGoals = state.goals.map((goal) => {
+            if (goal.bookId === bookId && progress >= 100) {
+              return { ...goal, completed: true }
+            }
+            return goal
+          })
+
+          return { books: newBooks, goals: newGoals }
+        })
       },
       
       deleteBook: (bookId) => {

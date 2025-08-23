@@ -15,14 +15,38 @@ import {
   FileText
 } from 'lucide-react'
 import { useReadingStore, Book, ReadingSession, Note, Highlight } from '@/lib/store'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { enUS, zhCN, es } from 'date-fns/locale'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
 
 export default function ReadingStats() {
   const { books, sessions, notes, highlights, goals } = useReadingStore()
+  const { t, language } = useLanguage()
   const [timeRange, setTimeRange] = useState('week')
   const [selectedBook, setSelectedBook] = useState('all')
+
+  const mounted = useRef(false)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  const getLocale = () => {
+    switch (language) {
+      case 'en':
+        return enUS
+      case 'zh':
+        return zhCN
+      case 'es':
+        return es
+      default:
+        return enUS
+    }
+  }
 
   // 计算统计数据
   const totalBooks = books.length
@@ -167,6 +191,10 @@ export default function ReadingStats() {
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
+    
+    if (mounted.current) {
+      toast.success(t('success.statsExported'))
+    }
   }
 
   return (
@@ -174,8 +202,8 @@ export default function ReadingStats() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">阅读统计</h2>
-          <p className="text-gray-600 mt-1">了解你的阅读习惯和进度</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('stats.title')}</h2>
+          <p className="text-gray-600 mt-1">{t('stats.subtitle')}</p>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -184,9 +212,9 @@ export default function ReadingStats() {
             onChange={(e) => setTimeRange(e.target.value)}
             className="input-field w-32"
           >
-            <option value="week">本周</option>
-            <option value="month">本月</option>
-            <option value="year">本年</option>
+            <option value="week">{t('stats.week')}</option>
+            <option value="month">{t('stats.month')}</option>
+            <option value="year">{t('stats.year')}</option>
           </select>
           
           <select
@@ -194,7 +222,7 @@ export default function ReadingStats() {
             onChange={(e) => setSelectedBook(e.target.value)}
             className="input-field w-48"
           >
-            <option value="all">所有书籍</option>
+            <option value="all">{t('stats.allBooks')}</option>
             {books.map(book => (
               <option key={book.id} value={book.id}>
                 {book.title}
@@ -207,7 +235,7 @@ export default function ReadingStats() {
             className="btn-secondary flex items-center space-x-2"
           >
             <Download className="h-4 w-4" />
-            <span>导出统计</span>
+            <span>{t('stats.exportStats')}</span>
           </button>
         </div>
       </div>
@@ -225,10 +253,10 @@ export default function ReadingStats() {
               <BookOpen className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">总书籍</p>
+              <p className="text-sm text-gray-600">{t('library.totalBooks')}</p>
               <p className="text-2xl font-bold text-gray-900">{totalBooks}</p>
               <p className="text-xs text-gray-500">
-                {completedBooks} 已完成 • {readingBooks} 进行中
+                {completedBooks} {t('library.completed')} • {readingBooks} {t('library.currentlyReading')}
               </p>
             </div>
           </div>
@@ -245,12 +273,12 @@ export default function ReadingStats() {
               <Clock className="h-8 w-8 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">总阅读时间</p>
+              <p className="text-sm text-gray-600">{t('stats.totalReadingTime')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {Math.round(totalReadingTime / (1000 * 60 * 60))}h
               </p>
               <p className="text-xs text-gray-500">
-                平均 {Math.round(averageReadingTime / (1000 * 60))} 分钟/次
+                {t('stats.averageReadingTime', { time: Math.round(averageReadingTime / (1000 * 60)) })}
               </p>
             </div>
           </div>
@@ -267,10 +295,10 @@ export default function ReadingStats() {
               <FileText className="h-8 w-8 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">总笔记</p>
+              <p className="text-sm text-gray-600">{t('notes.totalNotes')}</p>
               <p className="text-2xl font-bold text-gray-900">{totalNotes}</p>
               <p className="text-xs text-gray-500">
-                {totalHighlights} 高亮 • {new Set(notes.map(n => n.bookId)).size} 本书
+                {totalHighlights} {t('notes.highlights')} • {new Set(notes.map(n => n.bookId)).size} {t('notes.booksWithNotes')}
               </p>
             </div>
           </div>
@@ -287,10 +315,10 @@ export default function ReadingStats() {
               <Target className="h-8 w-8 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">阅读目标</p>
+              <p className="text-sm text-gray-600">{t('goals.title')}</p>
               <p className="text-2xl font-bold text-gray-900">{totalGoals}</p>
               <p className="text-xs text-gray-500">
-                {completedGoals} 已完成 • {totalGoals - completedGoals} 进行中
+                {completedGoals} {t('goals.completed')} • {totalGoals - completedGoals} {t('goals.inProgress')}
               </p>
             </div>
           </div>
@@ -306,15 +334,15 @@ export default function ReadingStats() {
           transition={{ duration: 0.3, delay: 0.5 }}
           className="card"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">阅读进度趋势</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('stats.readingTrends')}</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={getTimeRangeData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="readingTime" stroke="#3b82f6" strokeWidth={2} name="阅读时间(分钟)" />
-              <Line type="monotone" dataKey="notes" stroke="#10b981" strokeWidth={2} name="笔记数量" />
+              <Line type="monotone" dataKey="readingTime" stroke="#3b82f6" strokeWidth={2} name={t('stats.readingTime')} />
+              <Line type="monotone" dataKey="notes" stroke="#10b981" strokeWidth={2} name={t('stats.notesCount')} />
             </LineChart>
           </ResponsiveContainer>
         </motion.div>
@@ -326,7 +354,7 @@ export default function ReadingStats() {
           transition={{ duration: 0.3, delay: 0.6 }}
           className="card"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">阅读进度分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('stats.progressDistribution')}</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={progressRanges}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -348,7 +376,7 @@ export default function ReadingStats() {
           transition={{ duration: 0.3, delay: 0.7 }}
           className="card"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">书籍类型分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('stats.bookTypes')}</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -377,7 +405,7 @@ export default function ReadingStats() {
           transition={{ duration: 0.3, delay: 0.8 }}
           className="card"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">笔记类型分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('stats.noteTypes')}</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -407,7 +435,7 @@ export default function ReadingStats() {
         transition={{ duration: 0.3, delay: 0.9 }}
         className="card"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">热门书籍</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('stats.topBooks')}</h3>
         <div className="space-y-3">
           {books
             .sort((a, b) => b.progress - a.progress)
@@ -424,7 +452,7 @@ export default function ReadingStats() {
                 <div className="text-right">
                   <p className="font-medium text-gray-900">{book.progress}%</p>
                   <p className="text-sm text-gray-600">
-                    {format(new Date(book.lastReadAt), 'MM/dd', { locale: zhCN })}
+                    {format(new Date(book.lastReadAt), 'MM/dd', { locale: getLocale() })}
                   </p>
                 </div>
               </div>

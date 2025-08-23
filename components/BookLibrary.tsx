@@ -27,6 +27,7 @@ export default function BookLibrary() {
   const { t, language } = useLanguage()
   const [filter, setFilter] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
+  const [searchTerm, setSearchTerm] = useState('')
   const [readingBook, setReadingBook] = useState<Book | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -51,10 +52,15 @@ export default function BookLibrary() {
   }
 
   const filteredBooks = books.filter(book => {
-    if (filter === 'reading') return book.progress > 0 && book.progress < 100
-    if (filter === 'completed') return book.progress === 100
-    if (filter === 'not-started') return book.progress === 0
-    return true
+    const matchesFilter = (filter === 'all') || 
+                        (filter === 'reading' && book.progress > 0 && book.progress < 100) || 
+                        (filter === 'completed' && book.progress === 100) || 
+                        (filter === 'not-started' && book.progress === 0)
+
+    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        book.author.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return matchesFilter && matchesSearch
   })
 
   const sortedBooks = [...filteredBooks].sort((a, b) => {
@@ -101,10 +107,10 @@ export default function BookLibrary() {
             onChange={(e) => setFilter(e.target.value)}
             className="input-field w-40"
           >
-            <option value="all">{t('library.totalBooks')}</option>
+            <option value="all">{t('library.allBooks')}</option>
             <option value="reading">{t('library.currentlyReading')}</option>
             <option value="completed">{t('library.completed')}</option>
-            <option value="not-started">Not Started</option>
+            <option value="not-started">{t('library.notStarted')}</option>
           </select>
           
           <select
@@ -112,10 +118,18 @@ export default function BookLibrary() {
             onChange={(e) => setSortBy(e.target.value)}
             className="input-field w-40"
           >
-            <option value="recent">Recent</option>
-            <option value="title">By Title</option>
-            <option value="progress">By Progress</option>
+            <option value="recent">{t('library.sortByRecent')}</option>
+            <option value="title">{t('library.sortByTitle')}</option>
+            <option value="progress">{t('library.sortByProgress')}</option>
           </select>
+
+          <input
+            type="text"
+            placeholder={t('common.search')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input-field w-48"
+          />
         </div>
       </div>
 

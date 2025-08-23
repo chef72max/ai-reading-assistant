@@ -16,6 +16,8 @@ import { useReadingStore, ReadingGoal, Book } from '@/lib/store'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { format, addDays, differenceInDays } from 'date-fns'
 import { enUS, zhCN, es } from 'date-fns/locale'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import toast from 'react-hot-toast'
 
 export default function ReadingGoals() {
@@ -374,11 +376,11 @@ export default function ReadingGoals() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t('goals.startDate')}
                     </label>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    <DatePicker
+                      selected={new Date(formData.startDate)}
+                      onChange={(date: Date) => setFormData(prev => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }))}
                       className="input-field"
+                      dateFormat="yyyy-MM-dd"
                     />
                   </div>
 
@@ -386,11 +388,11 @@ export default function ReadingGoals() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t('goals.endDate')}
                     </label>
-                    <input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                    <DatePicker
+                      selected={new Date(formData.endDate)}
+                      onChange={(date: Date) => setFormData(prev => ({ ...prev, endDate: format(date, 'yyyy-MM-dd') }))}
                       className="input-field"
+                      dateFormat="yyyy-MM-dd"
                     />
                   </div>
                 </div>

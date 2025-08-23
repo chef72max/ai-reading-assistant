@@ -41,7 +41,12 @@
     "noBooks": "Aún no hay libros",
     "noBooksDesc": "Agrega tu primer libro para comenzar tu viaje de lectura",
     "confirmDelete": "¿Estás seguro de que quieres eliminar '{title}'?",
-    "bookDeleted": "Libro eliminado exitosamente"
+    "bookDeleted": "Libro eliminado exitosamente",
+    "allBooks": "Todos los libros",
+    "notStarted": "No empezado",
+    "sortByRecent": "Ordenar por recientes",
+    "sortByTitle": "Ordenar por título",
+    "sortByProgress": "Ordenar por progreso"
   },
   "bookForm": {
     "addNewBook": "Agregar Nuevo Libro",
@@ -102,7 +107,9 @@
     "allBooks": "Todos los Libros",
     "searchPlaceholder": "Buscar notas por contenido o etiquetas...",
     "noNotes": "Aún no hay notas",
-    "noNotesDesc": "Crea tu primera nota para comenzar a registrar ideas"
+    "noNotesDesc": "Crea tu primera nota para comenzar a registrar ideas",
+    "commaSeparated": "separado por comas",
+    "tagsPlaceholder": "Importante, Concepto, Pregunta"
   },
   "ai": {
     "title": "Asistente de Lectura IA",
@@ -208,6 +215,7 @@
     "highlightAdded": "¡Resaltado agregado exitosamente!",
     "conversationExported": "¡Chat exportado exitosamente!",
     "notesExported": "¡Notas exportadas exitosamente!",
-    "statsExported": "¡Estadísticas exportadas exitosamente!"
+    "statsExported": "¡Estadísticas exportadas exitosamente!",
+    "bookDownloaded": "¡Libro descargado exitosamente!"
   }
 }
