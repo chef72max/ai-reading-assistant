@@ -1,7 +1,58 @@
 // File processing utility functions
 
+// Supported file formats
+export const SUPPORTED_FORMATS = {
+  pdf: 'application/pdf',
+  epub: 'application/epub+zip',
+  mobi: 'application/x-mobipocket-ebook',
+  azw: 'application/vnd.amazon.ebook',
+  txt: 'text/plain',
+  html: 'text/html',
+  htm: 'text/html'
+}
+
 export const isSupportedFormat = (format: string): boolean => {
-  return Object.keys(SUPPORTED_FORMATS).includes(format)
+  // Handle unknown format by trying to infer from context
+  if (format === 'unknown') {
+    return true; // Allow unknown formats to be processed
+  }
+  return Object.keys(SUPPORTED_FORMATS).includes(format.toLowerCase())
+}
+
+// Enhanced format detection that tries to infer format from various sources
+export const detectFileFormat = (filename: string, mimeType?: string): string => {
+  // First try to get format from filename
+  let detectedFormat = getFileType(filename)
+  
+  // If still unknown, try to infer from MIME type
+  if (detectedFormat === 'unknown' && mimeType) {
+    switch (mimeType) {
+      case 'application/pdf':
+        return 'pdf'
+      case 'application/epub+zip':
+        return 'epub'
+      case 'application/x-mobipocket-ebook':
+        return 'mobi'
+      case 'application/vnd.amazon.ebook':
+        return 'azw'
+      case 'text/plain':
+        return 'txt'
+      case 'text/html':
+        return 'html'
+      default:
+        // Try to infer from filename patterns as last resort
+        if (filename.toLowerCase().includes('.pdf')) return 'pdf'
+        if (filename.toLowerCase().includes('.epub')) return 'epub'
+        if (filename.toLowerCase().includes('.mobi')) return 'mobi'
+        if (filename.toLowerCase().includes('.txt')) return 'txt'
+        if (filename.toLowerCase().includes('.html') || filename.toLowerCase().includes('.htm')) return 'html'
+        if (filename.toLowerCase().includes('.azw')) return 'azw'
+        
+        return 'unknown'
+    }
+  }
+  
+  return detectedFormat
 }
 
 // Intelligently parse filename to extract book title and author
@@ -138,6 +189,38 @@ export const createFileURL = (file: File): string => {
 
 export const revokeFileURL = (url: string): void => {
   URL.revokeObjectURL(url)
+}
+
+export function getFileType(filename: string): string {
+  if (!filename) return 'unknown';
+  
+  const extension = filename.split('.').pop()?.toLowerCase();
+  
+  switch (extension) {
+    case 'pdf':
+      return 'pdf';
+    case 'epub':
+      return 'epub';
+    case 'mobi':
+      return 'mobi';
+    case 'txt':
+      return 'txt';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'azw':
+      return 'azw';
+    default:
+      // Try to infer from filename patterns
+      if (filename.toLowerCase().includes('.pdf')) return 'pdf';
+      if (filename.toLowerCase().includes('.epub')) return 'epub';
+      if (filename.toLowerCase().includes('.mobi')) return 'mobi';
+      if (filename.toLowerCase().includes('.txt')) return 'txt';
+      if (filename.toLowerCase().includes('.html') || filename.toLowerCase().includes('.htm')) return 'html';
+      if (filename.toLowerCase().includes('.azw')) return 'azw';
+      
+      return 'unknown';
+  }
 }
 
 // Simulate file upload to server

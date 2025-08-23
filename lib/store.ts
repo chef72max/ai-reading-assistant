@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// Fallback UUID generator for environments where crypto.randomUUID is not available
+const generateId = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback to a simple ID generator
+  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+}
+
 export interface Book {
   id: string
   title: string
@@ -109,7 +118,7 @@ export const useReadingStore = create<ReadingStore>()(
       addBook: (bookData) => {
         const newBook: Book = {
           ...bookData,
-          id: crypto.randomUUID(),
+          id: generateId(),
           addedAt: new Date(),
           lastReadAt: new Date(),
           currentPage: 1,
@@ -149,7 +158,7 @@ export const useReadingStore = create<ReadingStore>()(
       
       startSession: (bookId) => {
         const session: ReadingSession = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           bookId,
           startTime: new Date(),
           pagesRead: 0,
@@ -184,7 +193,7 @@ export const useReadingStore = create<ReadingStore>()(
       addNote: (noteData) => {
         const newNote: Note = {
           ...noteData,
-          id: crypto.randomUUID(),
+          id: generateId(),
           createdAt: new Date(),
         }
         set((state) => ({ notes: [...state.notes, newNote] }))
@@ -207,7 +216,7 @@ export const useReadingStore = create<ReadingStore>()(
       addHighlight: (highlightData) => {
         const newHighlight: Highlight = {
           ...highlightData,
-          id: crypto.randomUUID(),
+          id: generateId(),
           createdAt: new Date(),
         }
         set((state) => ({ highlights: [...state.highlights, newHighlight] }))
@@ -230,7 +239,7 @@ export const useReadingStore = create<ReadingStore>()(
       addGoal: (goalData) => {
         const newGoal: ReadingGoal = {
           ...goalData,
-          id: crypto.randomUUID(),
+          id: generateId(),
         }
         set((state) => ({ goals: [...state.goals, newGoal] }))
       },

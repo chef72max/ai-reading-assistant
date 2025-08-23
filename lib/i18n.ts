@@ -1,7 +1,8 @@
 import en from '@/locales/en.json'
 import es from '@/locales/es.json'
+import zh from '@/locales/zh.json'
 
-export type Language = 'en' | 'es'
+export type Language = 'en' | 'es' | 'zh'
 
 export const languages: Record<Language, { name: string; nativeName: string; flag: string }> = {
   en: {
@@ -13,12 +14,18 @@ export const languages: Record<Language, { name: string; nativeName: string; fla
     name: 'Spanish',
     nativeName: 'Español',
     flag: '🇪🇸'
+  },
+  zh: {
+    name: 'Chinese',
+    nativeName: '中文',
+    flag: '🇨🇳'
   }
 }
 
 export const translations = {
   en,
-  es
+  es,
+  zh
 }
 
 export const defaultLanguage: Language = 'en'

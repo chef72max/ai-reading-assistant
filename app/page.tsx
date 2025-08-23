@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   BookOpen, 
@@ -21,12 +21,214 @@ import AICompanion from '@/components/AICompanion'
 import ReadingStats from '@/components/ReadingStats'
 import AddBookModal from '@/components/AddBookModal'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { demoBooks, demoNotes, demoGoals } from '@/demo-data'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('library')
   const [showAddBook, setShowAddBook] = useState(false)
-  const { books, currentBook } = useReadingStore()
+  const { books, currentBook, addBook, addNote, addGoal } = useReadingStore()
   const { t, language, setLanguage } = useLanguage()
+
+  // Manual initialization function for testing
+  const initializeDemoData = () => {
+    console.log('Manually initializing demo data...')
+    
+    // Create virtual file content for demo books
+    const createVirtualFile = (title: string, author: string, content: string, type: string) => {
+      const blob = new Blob([content], { type: `text/${type}` })
+      return new File([blob], `${title.toLowerCase().replace(/\s+/g, '-')}.${type}`, { type: `text/${type}` })
+    }
+    
+    const demoBooksWithVirtualContent = [
+      {
+        title: 'Thinking, Fast and Slow',
+        author: 'Daniel Kahneman',
+        content: `Thinking, Fast and Slow
+
+by Daniel Kahneman
+
+Chapter 1: The Characters of the Story
+
+Our brains have two systems:
+- System 1: Fast, automatic, intuitive
+- System 2: Slow, deliberate, logical
+
+System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control.
+
+System 2 allocates attention to the effortful mental activities that demand it, including complex computations.
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+        fileType: 'txt' as const,
+        totalPages: 400
+      },
+      {
+        title: 'Principles',
+        author: 'Ray Dalio',
+        content: `Principles
+
+by Ray Dalio
+
+Introduction
+
+I believe that everything that happens comes about because of cause-effect relationships that repeat and evolve over time.
+
+The key to success in life is to:
+1. Know what you want
+2. Know what's true
+3. Know what to do about it
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+        fileType: 'txt' as const,
+        totalPages: 350
+      },
+      {
+        title: 'Sapiens: A Brief History of Humankind',
+        author: 'Yuval Noah Harari',
+        content: `Sapiens: A Brief History of Humankind
+
+by Yuval Noah Harari
+
+Chapter 1: An Animal of No Significance
+
+About 13.5 billion years ago, matter, energy, time and space came into being in what is known as the Big Bang.
+
+The story of these fundamental features of our universe is called physics.
+
+About 300,000 years after their appearance, matter and energy started to coalesce into complex structures, called atoms.
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+        fileType: 'txt' as const,
+        totalPages: 450
+      }
+    ]
+    
+    demoBooksWithVirtualContent.forEach(book => {
+      console.log('Adding book with virtual content:', book.title)
+      const virtualFile = createVirtualFile(book.title, book.author, book.content, book.fileType)
+      
+      addBook({
+        title: book.title,
+        author: book.author,
+        filePath: virtualFile.name,
+        fileData: virtualFile, // Include the virtual file
+        fileType: book.fileType,
+        totalPages: book.totalPages
+      })
+    })
+    
+    console.log('Demo data initialization complete')
+  }
+
+  // Initialize demo data if no books exist
+  useEffect(() => {
+    if (books.length === 0) {
+      console.log('Initializing demo data...')
+      
+      // Create virtual file content for demo books
+      const createVirtualFile = (title: string, author: string, content: string, type: string) => {
+        const blob = new Blob([content], { type: `text/${type}` })
+        return new File([blob], `${title.toLowerCase().replace(/\s+/g, '-')}.${type}`, { type: `text/${type}` })
+      }
+      
+      const demoBooksWithVirtualContent = [
+        {
+          title: 'Thinking, Fast and Slow',
+          author: 'Daniel Kahneman',
+          content: `Thinking, Fast and Slow
+
+by Daniel Kahneman
+
+Chapter 1: The Characters of the Story
+
+Our brains have two systems:
+- System 1: Fast, automatic, intuitive
+- System 2: Slow, deliberate, logical
+
+System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control.
+
+System 2 allocates attention to the effortful mental activities that demand it, including complex computations.
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+          fileType: 'txt' as const,
+          totalPages: 400
+        },
+        {
+          title: 'Principles',
+          author: 'Ray Dalio',
+          content: `Principles
+
+by Ray Dalio
+
+Introduction
+
+I believe that everything that happens comes about because of cause-effect relationships that repeat and evolve over time.
+
+The key to success in life is to:
+1. Know what you want
+2. Know what's true
+3. Know what to do about it
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+          fileType: 'txt' as const,
+          totalPages: 350
+        },
+        {
+          title: 'Sapiens: A Brief History of Humankind',
+          author: 'Yuval Noah Harari',
+          content: `Sapiens: A Brief History of Humankind
+
+by Yuval Noah Harari
+
+Chapter 1: An Animal of No Significance
+
+About 13.5 billion years ago, matter, energy, time and space came into being in what is known as the Big Bang.
+
+The story of these fundamental features of our universe is called physics.
+
+About 300,000 years after their appearance, matter and energy started to coalesce into complex structures, called atoms.
+
+This is a demonstration of the book content. In a real application, this would be the actual PDF content.`,
+          fileType: 'txt' as const,
+          totalPages: 450
+        }
+      ]
+      
+      demoBooksWithVirtualContent.forEach(book => {
+        console.log('Adding book with virtual content:', book.title)
+        const virtualFile = createVirtualFile(book.title, book.author, book.content, book.fileType)
+        
+        addBook({
+          title: book.title,
+          author: book.author,
+          filePath: virtualFile.name,
+          fileData: virtualFile, // Include the virtual file
+          fileType: book.fileType,
+          totalPages: book.totalPages
+        })
+      })
+      
+      demoNotes.forEach(note => {
+        addNote({
+          bookId: note.bookId,
+          page: note.page,
+          content: note.content,
+          type: note.type as 'note' | 'summary' | 'question' | 'insight',
+          tags: note.tags
+        })
+      })
+      
+      demoGoals.forEach(goal => {
+        addGoal({
+          bookId: goal.bookId,
+          targetPages: goal.targetPages,
+          dailyTarget: goal.dailyTarget,
+          startDate: goal.startDate,
+          endDate: goal.endDate,
+          completed: goal.completed
+        })
+      })
+    }
+  }, [books.length, addBook, addNote, addGoal])
 
   const tabs = [
     { id: 'library', label: t('navigation.library'), icon: BookOpen },
@@ -56,6 +258,16 @@ export default function Home() {
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-64"
                 />
               </div>
+              
+              {/* Debug button for testing */}
+              {books.length === 0 && (
+                <button
+                  onClick={initializeDemoData}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <span>🧪 Init Demo Data</span>
+                </button>
+              )}
               
               <button
                 onClick={() => setShowAddBook(true)}

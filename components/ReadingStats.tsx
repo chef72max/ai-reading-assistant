@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { 
   BarChart3, 
@@ -19,6 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns'
 import { enUS, zhCN, es } from 'date-fns/locale'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
+import toast from 'react-hot-toast'
 
 export default function ReadingStats() {
   const { books, sessions, notes, highlights, goals } = useReadingStore()
@@ -193,7 +194,7 @@ export default function ReadingStats() {
     linkElement.click()
     
     if (mounted.current) {
-      toast.success(t('success.statsExported'))
+      toast.success('Statistics exported successfully')
     }
   }
 
@@ -278,7 +279,7 @@ export default function ReadingStats() {
                 {Math.round(totalReadingTime / (1000 * 60 * 60))}h
               </p>
               <p className="text-xs text-gray-500">
-                {t('stats.averageReadingTime', { time: Math.round(averageReadingTime / (1000 * 60)) })}
+                {t('stats.averageReadingTime')} {Math.round(averageReadingTime / (1000 * 60))}m
               </p>
             </div>
           </div>

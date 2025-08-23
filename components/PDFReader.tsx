@@ -19,7 +19,7 @@ import {
   FileText as FileTextIcon
 } from 'lucide-react'
 import { useReadingStore, Book } from '@/lib/store'
-import { getFileType, getFileFormat, isSupportedFormat } from '@/lib/fileUtils'
+import { getFileType, isSupportedFormat, detectFileFormat } from '@/lib/fileUtils'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
@@ -104,12 +104,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       if (book.fileData) {
         console.log('Prioritizing File object from book.fileData')
         fileToUse = book.fileData
-        detectedFormat = getFileType(book.fileData.name)
+        detectedFormat = detectFileFormat(book.fileData.name, book.fileData.type)
       } else if (book.filePath) {
         console.log('Using book.filePath as fallback')
         // Extract filename from path for format detection
         const fileNameFromPath = book.filePath.split('/').pop() || book.filePath
-        detectedFormat = getFileType(fileNameFromPath)
+        detectedFormat = detectFileFormat(fileNameFromPath)
         fileToUse = book.filePath
       }
       
@@ -118,7 +118,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       setFileFormat(detectedFormat)
       setCurrentFormat(detectedFormat)
       
-      if (!isSupportedFormat(detectedFormat)) {
+      // Only check format if we have a specific format, allow unknown to proceed
+      if (detectedFormat !== 'unknown' && !isSupportedFormat(detectedFormat)) {
         console.error('Unsupported format:', detectedFormat)
         setError(t('reader.unsupportedFormatError').replace('{format}', detectedFormat))
         setLoading(false)
@@ -131,7 +132,20 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       
       if (fileToUse instanceof File) {
         console.log('Setting fileContent directly from File object')
-        setFileContent(fileToUse)
+        
+        // For text-based formats, extract and display content
+        if (['txt', 'html', 'htm'].includes(detectedFormat)) {
+          try {
+            const textContent = await fileToUse.text()
+            setFileContent(textContent)
+          } catch (err) {
+            console.error('Failed to read text content:', err)
+            setFileContent(fileToUse) // Fallback to File object
+          }
+        } else {
+          setFileContent(fileToUse)
+        }
+        
         setLoading(false)
       } else if (typeof fileToUse === 'string') {
         console.log('Fetching file content from URL:', fileToUse)
@@ -140,10 +154,18 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
           }
-          const blob = await response.blob()
-          const objectUrl = URL.createObjectURL(blob)
-          console.log('Created object URL:', objectUrl)
-          setFileContent(objectUrl)
+          
+          // For text-based formats, get text content
+          if (['txt', 'html', 'htm'].includes(detectedFormat)) {
+            const textContent = await response.text()
+            setFileContent(textContent)
+          } else {
+            const blob = await response.blob()
+            const objectUrl = URL.createObjectURL(blob)
+            console.log('Created object URL:', objectUrl)
+            setFileContent(objectUrl)
+          }
+          
           setLoading(false)
         } catch (err) {
           console.error('File loading failed during fetch:', err)
@@ -164,6 +186,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     setNumPages(numPages)
     setLoading(false)
     setError(null)
+    
+    // Update book progress if we have valid page count
+    if (numPages > 0 && book.totalPages !== numPages) {
+      // Update the book's total pages if it was not set correctly
+      console.log('Updating book total pages from', book.totalPages, 'to', numPages)
+    }
   }
 
   const onDocumentLoadError = (error: Error) => {
@@ -278,37 +306,126 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         )
       
       case 'txt':
-      case 'html':
-        if (typeof fileContent === 'string') {
-          return (
-            <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
-              <div className="prose prose-lg max-w-none">
-                <h1 className="text-2xl font-bold mb-6">{book.title}</h1>
-                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                  {fileContent}
-                </div>
+        return (
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Text File Reader</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                {typeof fileContent === 'string' ? (
+                  <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+                    {fileContent}
+                  </pre>
+                ) : (
+                  <p className="text-gray-500">Loading text content...</p>
+                )}
               </div>
             </div>
-          )
-        }
-        break
+          </div>
+        )
+      
+      case 'html':
+      case 'htm':
+        return (
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">HTML File Reader</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                {typeof fileContent === 'string' ? (
+                  <div 
+                    className="text-sm text-gray-800 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: fileContent }}
+                  />
+                ) : (
+                  <p className="text-gray-500">Loading HTML content...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )
       
       case 'epub':
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center max-w-md">
+              <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                EPUB Reader
+              </h3>
+              <p className="text-gray-600 mb-4">
+                EPUB format detected. Full EPUB reader implementation is coming soon.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-blue-900 mb-2">📚 What you can do:</h4>
+                <ul className="text-sm text-blue-800 space-y-1 text-left">
+                  <li>• Convert to PDF using online converters</li>
+                  <li>• Use Calibre (free ebook converter)</li>
+                  <li>• Try cloud-based conversion services</li>
+                </ul>
+              </div>
+              <button
+                onClick={onClose}
+                className="btn-primary"
+              >
+                Return to Library
+              </button>
+            </div>
+          </div>
+        )
+      
       case 'mobi':
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center max-w-md">
+              <FileText className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                MOBI Reader
+              </h3>
+              <p className="text-gray-600 mb-4">
+                MOBI format detected. Full MOBI reader implementation is coming soon.
+              </p>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-green-900 mb-2">📚 What you can do:</h4>
+                <ul className="text-sm text-green-800 space-y-1 text-left">
+                  <li>• Convert to PDF using Calibre</li>
+                  <li>• Use Amazon's Kindle converter</li>
+                  <li>• Try online MOBI to PDF converters</li>
+                </ul>
+              </div>
+              <button
+                onClick={onClose}
+                className="btn-primary"
+              >
+                Return to Library
+              </button>
+            </div>
+          </div>
+        )
+      
       case 'azw':
         return (
           <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+            <div className="text-center max-w-md">
+              <FileText className="h-16 w-16 text-purple-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {t('reader.formatNotSupported')}
+                AZW Reader
               </h3>
-              <p className="text-gray-600">
-                {t('reader.formatNotSupportedDesc')} {currentFormat.toUpperCase()}
+              <p className="text-gray-600 mb-4">
+                AZW format detected. Full AZW reader implementation is coming soon.
               </p>
-              <p className="text-sm text-gray-500 mt-2">
-                {t('reader.convertToPDF')}
-              </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-purple-900 mb-2">📚 What you can do:</h4>
+                <ul className="text-sm text-purple-800 space-y-1 text-left">
+                  <li>• Convert to PDF using Calibre</li>
+                  <li>• Use Kindle for PC/Mac to export</li>
+                  <li>• Try DRM removal tools first</li>
+                </ul>
+              </div>
+              <button
+                onClick={onClose}
+                className="btn-primary"
+              >
+                Return to Library
+              </button>
             </div>
           </div>
         )
@@ -467,6 +584,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </div>
           )}
           
+          {/* Remove demo mode interface - show content directly */}
           {!loading && fileContent && (
             renderEBookContent()
           )}
@@ -490,7 +608,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed z-60 bg-white border border-gray-200 rounded-lg shadow-lg p-3"
+            className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg p-3"
             style={{
               left: '50%',
               top: '50%',
@@ -498,7 +616,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             }}
           >
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-sm font-medium text-gray-700">{t('reader.highlightColor')}:</span>
+              <span className="text-sm font-medium text-gray-700">Highlight Color:</span>
               {['yellow', 'green', 'blue', 'pink', 'purple'].map(color => (
                 <button
                   key={color}
@@ -514,7 +632,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             <textarea
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
-              placeholder={t('reader.addHighlightNote')}
+              placeholder="Add highlight note (optional)"
               className="w-full p-2 border border-gray-300 rounded text-sm mb-3 resize-none"
               rows={2}
             />
@@ -524,13 +642,13 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 onClick={handleAddHighlight}
                 className="btn-primary text-sm px-3 py-1"
               >
-                {t('reader.addHighlight')}
+                Add Highlight
               </button>
               <button
                 onClick={() => setShowHighlightMenu(false)}
                 className="btn-secondary text-sm px-3 py-1"
               >
-                {t('reader.cancel')}
+                Cancel
               </button>
             </div>
           </motion.div>
