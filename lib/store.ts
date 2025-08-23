@@ -83,20 +83,30 @@ export const storeFileInIndexedDB = async (bookId: string, file: File): Promise<
 // Retrieve file from IndexedDB
 export const getFileFromIndexedDB = async (bookId: string): Promise<File | null> => {
   try {
+    console.log(`🔍 Retrieving file from IndexedDB for book: ${bookId}`)
     const db = await initDB()
     const transaction = db.transaction([STORE_NAME], 'readonly')
     const store = transaction.objectStore(STORE_NAME)
     
     const request = store.get(bookId)
     return new Promise((resolve, reject) => {
-      request.onerror = () => reject(request.error)
+      request.onerror = () => {
+        console.error(`❌ IndexedDB retrieval error:`, request.error)
+        reject(request.error)
+      }
       request.onsuccess = () => {
         const result = request.result
-        resolve(result ? result.file : null)
+        if (result && result.file) {
+          console.log(`✅ File retrieved successfully:`, result.file.name, result.file.size, 'bytes')
+          resolve(result.file)
+        } else {
+          console.log(`❌ No file found in IndexedDB for book: ${bookId}`)
+          resolve(null)
+        }
       }
     })
   } catch (error) {
-    console.error('Failed to retrieve file from IndexedDB:', error)
+    console.error(`❌ Failed to retrieve file from IndexedDB:`, error)
     return null
   }
 }
@@ -224,7 +234,7 @@ export const useReadingStore = create<ReadingStore>()(
       highlights: [],
       goals: [],
       
-      addBook: (bookData) => {
+      addBook: async (bookData) => {
         const newBook: Book = {
           ...bookData,
           id: generateId(),
@@ -234,12 +244,34 @@ export const useReadingStore = create<ReadingStore>()(
           progress: 0,
         }
         
+        console.log(`📚 Adding new book:`, newBook.id, newBook.title)
+        
         // Store the file in IndexedDB for persistence
         if (bookData.fileData) {
-          storeFileInIndexedDB(newBook.id, bookData.fileData)
+          try {
+            console.log(`💾 Storing file data for book:`, newBook.id, bookData.fileData.name)
+            await storeFileInIndexedDB(newBook.id, bookData.fileData)
+            
+            // Verify storage immediately
+            const storedFile = await getFileFromIndexedDB(newBook.id)
+            if (storedFile) {
+              console.log(`✅ File storage verification successful:`, storedFile.name)
+            } else {
+              console.error(`❌ File storage verification failed for book:`, newBook.id)
+            }
+          } catch (error) {
+            console.error('❌ Failed to store file in IndexedDB:', error)
+            // Don't add book if file storage fails
+            throw new Error(`Failed to store file: ${error}`)
+          }
+        } else {
+          console.log(`⚠️ No file data provided for book:`, newBook.id)
         }
         
         set((state) => ({ books: [...state.books, newBook] }))
+        
+        console.log(`✅ Book added successfully:`, newBook.id, newBook.title)
+        return newBook
       },
       
       setCurrentBook: (book) => {

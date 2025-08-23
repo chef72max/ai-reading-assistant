@@ -19,13 +19,34 @@ export const isSupportedFormat = (format: string): boolean => {
   return Object.keys(SUPPORTED_FORMATS).includes(format.toLowerCase())
 }
 
+
+
 // Enhanced format detection that tries to infer format from various sources
 export const detectFileFormat = (filename: string, mimeType?: string): string => {
   console.log('🔧 detectFileFormat called with:', { filename, mimeType });
+  console.log('📝 Filename type:', typeof filename);
+  console.log('📝 Filename length:', filename?.length);
   
-  // First try to get format from filename
+  // Clean and preprocess filename
+  if (typeof filename === 'string') {
+    // Remove any URL encoding or special characters
+    const cleanFilename = decodeURIComponent(filename).trim();
+    console.log('🧹 Cleaned filename:', cleanFilename);
+    
+    // First try to get format from cleaned filename
+    let detectedFormat = getFileType(cleanFilename)
+    console.log('📋 Format from cleaned filename:', detectedFormat);
+    
+    // If we got a valid format, return it
+    if (detectedFormat !== 'unknown') {
+      console.log('✅ Format detected from cleaned filename:', detectedFormat);
+      return detectedFormat;
+    }
+  }
+  
+  // Fallback to original filename if cleaning didn't help
   let detectedFormat = getFileType(filename)
-  console.log('📋 Format from filename:', detectedFormat);
+  console.log('📋 Format from original filename:', detectedFormat);
   
   // If still unknown, try to infer from MIME type
   if (detectedFormat === 'unknown' && mimeType) {
@@ -232,7 +253,16 @@ export function getFileType(filename: string): string {
   const extension = filename.split('.').pop()?.toLowerCase();
   console.log('📄 Extension found:', extension);
   
-  switch (extension) {
+  // Also try to find the last dot in the filename
+  const lastDotIndex = filename.lastIndexOf('.');
+  const extensionFromLastDot = lastDotIndex !== -1 ? filename.substring(lastDotIndex + 1).toLowerCase() : null;
+  console.log('🔍 Extension from last dot:', extensionFromLastDot);
+  
+  // Try both extension methods
+  const primaryExtension = extension || extensionFromLastDot;
+  console.log('🎯 Primary extension to check:', primaryExtension);
+  
+  switch (primaryExtension) {
     case 'pdf':
       console.log('✅ Detected PDF format');
       return 'pdf';
@@ -256,28 +286,31 @@ export function getFileType(filename: string): string {
       console.log('⚠️ Extension not recognized, trying pattern matching...');
       // Try to infer from filename patterns
       const lowerFilename = filename.toLowerCase();
-      if (lowerFilename.includes('.pdf')) {
-        console.log('✅ Found PDF in filename');
+      console.log('🔍 Pattern matching on filename:', lowerFilename);
+      
+      // More robust pattern matching
+      if (lowerFilename.includes('.pdf') || lowerFilename.endsWith('pdf')) {
+        console.log('✅ Found PDF in filename pattern matching');
         return 'pdf';
       }
-      if (lowerFilename.includes('.epub')) {
-        console.log('✅ Found EPUB in filename');
+      if (lowerFilename.includes('.epub') || lowerFilename.endsWith('epub')) {
+        console.log('✅ Found EPUB in filename pattern matching');
         return 'epub';
       }
-      if (lowerFilename.includes('.mobi')) {
-        console.log('✅ Found MOBI in filename');
+      if (lowerFilename.includes('.mobi') || lowerFilename.endsWith('mobi')) {
+        console.log('✅ Found MOBI in filename pattern matching');
         return 'mobi';
       }
-      if (lowerFilename.includes('.txt')) {
-        console.log('✅ Found TXT in filename');
+      if (lowerFilename.includes('.txt') || lowerFilename.endsWith('txt')) {
+        console.log('✅ Found TXT in filename pattern matching');
         return 'txt';
       }
-      if (lowerFilename.includes('.html') || lowerFilename.includes('.htm')) {
-        console.log('✅ Found HTML in filename');
+      if (lowerFilename.includes('.html') || lowerFilename.includes('.htm') || lowerFilename.endsWith('html') || lowerFilename.endsWith('htm')) {
+        console.log('✅ Found HTML in filename pattern matching');
         return 'html';
       }
-      if (lowerFilename.includes('.azw')) {
-        console.log('✅ Found AZW in filename');
+      if (lowerFilename.includes('.azw') || lowerFilename.endsWith('azw')) {
+        console.log('✅ Found AZW in filename pattern matching');
         return 'azw';
       }
       

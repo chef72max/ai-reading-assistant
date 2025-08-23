@@ -434,63 +434,51 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       console.log('book.fileType:', book.fileType)
       console.log('book.originalFileName:', book.originalFileName)
       
-      if (!book.filePath && !book.fileData) {
-        console.log('No file path or data, attempting IndexedDB recovery...')
-        // Try to restore from IndexedDB first before showing error
-        try {
-          const restoredFile = await getFileFromIndexedDB(book.id)
-          if (restoredFile) {
-            console.log('✅ File restored from IndexedDB during initial check:', restoredFile.name)
-            book.fileData = restoredFile
-            setFileRestored(true)
-          } else {
-            setError(t('reader.noFileError'))
-            setLoading(false)
-            return
-          }
-        } catch (error) {
-          console.error('Failed to restore file from IndexedDB during initial check:', error)
-          setError(t('reader.noFileError'))
+      // Always try to restore from IndexedDB first, regardless of book.fileData status
+      console.log('🔍 Attempting IndexedDB recovery for book:', book.id)
+      try {
+        const restoredFile = await getFileFromIndexedDB(book.id)
+        if (restoredFile) {
+          console.log('✅ File restored from IndexedDB:', restoredFile.name, restoredFile.size, 'bytes')
+          // Update the book object with restored file
+          book.fileData = restoredFile
+          setFileRestored(true)
+        } else {
+          console.error('❌ No file found in IndexedDB for book:', book.id)
+          setError(`文件恢复失败：无法从本地存储中找到文件。请重新上传书籍。`)
           setLoading(false)
           return
         }
+      } catch (error) {
+        console.error('❌ Failed to restore file from IndexedDB:', error)
+        setError(`文件恢复失败：${error instanceof Error ? error.message : '未知错误'}`)
+        setLoading(false)
+        return
       }
       
       let fileToUse: File | string | null = null
       let detectedFormat = ''
       
-      if (book.fileData) {
-        console.log('Using File object from book.fileData')
-        fileToUse = book.fileData
-        detectedFormat = detectFileFormat(book.fileData.name, book.fileData.type)
-      } else {
-        // Try to restore file from IndexedDB
-        console.log('Attempting to restore file from IndexedDB...')
-        try {
-          const restoredFile = await getFileFromIndexedDB(book.id)
-          if (restoredFile) {
-            console.log('✅ File restored from IndexedDB:', restoredFile.name)
-            fileToUse = restoredFile
-            detectedFormat = detectFileFormat(restoredFile.name, restoredFile.type)
-            // Update the book with restored file data
-            book.fileData = restoredFile
-            setFileRestored(true)
-          } else if (book.filePath) {
-            console.log('Using book.filePath as fallback')
-            // Extract filename from path for format detection
-            const fileNameFromPath = book.filePath.split('/').pop() || book.filePath
-            detectedFormat = detectFileFormat(fileNameFromPath)
-            fileToUse = book.filePath
-          }
-        } catch (error) {
-          console.error('Failed to restore file from IndexedDB:', error)
-          if (book.filePath) {
-            console.log('Using book.filePath as fallback after IndexedDB failure')
-            const fileNameFromPath = book.filePath.split('/').pop() || book.filePath
-            detectedFormat = detectFileFormat(fileNameFromPath)
-            fileToUse = book.filePath
-          }
+      // At this point, book.fileData should be restored from IndexedDB
+      if (book.fileData && book.fileData instanceof File) {
+        console.log('✅ Using restored File object from IndexedDB:', book.fileData.name, book.fileData.size, 'bytes')
+        
+        // Validate file object
+        if (book.fileData.name && book.fileData.size > 0) {
+          fileToUse = book.fileData
+          detectedFormat = detectFileFormat(book.fileData.name, book.fileData.type)
+          console.log('🔍 Format detection result:', detectedFormat)
+        } else {
+          console.error('❌ File object is invalid (no name or size):', book.fileData)
+          setError('文件对象无效，无法加载电子书。请重新上传书籍。')
+          setLoading(false)
+          return
         }
+      } else {
+        console.error('❌ File object is not valid after IndexedDB restoration:', book.fileData)
+        setError('文件对象无效，无法加载电子书。请重新上传书籍。')
+        setLoading(false)
+        return
       }
       
       // Additional validation
@@ -769,7 +757,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   }
 
   const retryLoadBook = async () => {
-    console.log('Retrying to load book...')
+    console.log('🔄 Retrying to load book...')
     setRetryCount(prev => prev + 1)
     setLoading(true)
     setError(null)
@@ -779,6 +767,24 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     setFileRestored(false)
     
     // The useEffect will automatically trigger due to dependency changes
+  }
+
+  // Debug function to check IndexedDB status
+  const debugIndexedDB = async () => {
+    console.log('🔍 Debugging IndexedDB status...')
+    try {
+      const restoredFile = await getFileFromIndexedDB(book.id)
+      if (restoredFile) {
+        console.log('✅ IndexedDB contains file:', restoredFile.name, restoredFile.size, 'bytes')
+        alert(`IndexedDB 状态正常\n文件: ${restoredFile.name}\n大小: ${restoredFile.size} 字节`)
+      } else {
+        console.log('❌ IndexedDB does not contain file for book:', book.id)
+        alert('IndexedDB 中没有找到文件，这是问题的根源')
+      }
+    } catch (error) {
+      console.error('❌ IndexedDB debug error:', error)
+      alert(`IndexedDB 调试错误: ${error}`)
+    }
   }
 
   // Toggle fullscreen mode
@@ -1211,6 +1217,18 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 <li>• 文件格式不支持</li>
                 <li>• 文件权限问题</li>
                 <li>• 网络连接问题</li>
+                <li>• IndexedDB 文件恢复失败</li>
+                <li>• 文件对象在传输过程中丢失</li>
+              </ul>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <h4 className="font-medium text-blue-900 mb-2">调试信息：</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• 书籍ID: {book.id}</li>
+                <li>• 文件名: {book.originalFileName}</li>
+                <li>• 文件类型: {book.fileType}</li>
+                <li>• 文件数据状态: {book.fileData ? '存在' : '不存在'}</li>
               </ul>
             </div>
             
@@ -1226,6 +1244,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 className="btn-secondary w-full"
               >
                 重试加载
+              </button>
+              <button
+                onClick={debugIndexedDB}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg w-full transition-colors"
+              >
+                🔍 调试 IndexedDB
               </button>
             </div>
           </div>
