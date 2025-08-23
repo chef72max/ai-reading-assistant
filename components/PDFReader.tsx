@@ -190,6 +190,10 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [pageNumber, setPageNumber] = useState(book.currentPage || 1)
   const [scale, setScale] = useState(1.0)
   const [rotation, setRotation] = useState(0)
+  const [isZooming, setIsZooming] = useState(false)
+  const [zoomTimeout, setZoomTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [pageChangeTimeout, setPageChangeTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [scrollAccumulator, setScrollAccumulator] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showNotes, setShowNotes] = useState(false)
@@ -202,6 +206,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [fileContent, setFileContent] = useState<File | string | null>(null)
   const [currentFormat, setCurrentFormat] = useState<string>('')
   const [fileRestored, setFileRestored] = useState<boolean>(false)
+  const [retryCount, setRetryCount] = useState<number>(0)
 
   // Reading statistics
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date())
@@ -235,23 +240,143 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
 
-  // Keyboard navigation
+  // Keyboard navigation and touchpad gestures
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
         event.preventDefault()
         goToPreviousPage()
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
         event.preventDefault()
         goToNextPage()
+      } else if (event.key === '=' || event.key === '+') {
+        // Zoom in with keyboard
+        event.preventDefault()
+        setScale(prev => Math.min(5.0, Math.round((prev + 0.25) * 100) / 100))
+      } else if (event.key === '-') {
+        // Zoom out with keyboard
+        event.preventDefault()
+        setScale(prev => Math.max(0.25, Math.round((prev - 0.25) * 100) / 100))
+      } else if (event.key === '0') {
+        // Reset zoom with keyboard
+        event.preventDefault()
+        setScale(1.0)
+      }
+    }
+
+    // Touchpad pinch-to-zoom support
+    const handleWheel = (event: WheelEvent) => {
+      // Check if it's a pinch gesture (pinch gestures have deltaY and deltaX)
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        
+        // Clear previous zoom timeout
+        if (zoomTimeout) {
+          clearTimeout(zoomTimeout)
+        }
+        
+        // Calculate zoom factor based on wheel delta
+        // Use even smaller increments for ultra-smooth zooming
+        const zoomFactor = event.deltaY > 0 ? 0.99 : 1.01
+        
+        // Show zoom feedback only when zooming significantly
+        if (!isZooming) {
+          setIsZooming(true)
+        }
+        
+        // Real-time zoom update for smooth animation
+        setScale(prev => {
+          const targetScale = Math.max(0.25, Math.min(5.0, prev * zoomFactor))
+          // Round to 2 decimal places for more predictable zooming
+          return Math.round(targetScale * 100) / 100
+        })
+        
+        // Hide zoom feedback after a short delay
+        const newTimeout = setTimeout(() => {
+          setIsZooming(false)
+        }, 500) // 500ms delay for zoom feedback
+        
+        setZoomTimeout(newTimeout)
+      }
+    }
+
+    // Touchpad two-finger scroll for page navigation
+    const handleTouchScroll = (event: WheelEvent) => {
+      // Only handle scroll when not zooming
+      if (!event.ctrlKey && !event.metaKey) {
+        const threshold = 120 // Much higher threshold to prevent accidental page changes
+        
+        // Accumulate scroll deltas
+        setScrollAccumulator(prev => ({
+          x: prev.x + event.deltaX,
+          y: prev.y + event.deltaY
+        }))
+        
+        // Determine the primary scroll direction
+        const isHorizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        const primaryDelta = isHorizontal ? event.deltaX : event.deltaY
+        
+        // Only handle if accumulated scroll exceeds threshold
+        if (Math.abs(primaryDelta) > threshold) {
+          event.preventDefault()
+          
+          // Clear previous page change timeout to prevent rapid page changes
+          if (pageChangeTimeout) {
+            clearTimeout(pageChangeTimeout)
+          }
+          
+                  // Debounced page change to prevent rapid scrolling
+        const newPageChangeTimeout = setTimeout(() => {
+          if (isHorizontal) {
+            // Horizontal scroll (left/right) - page navigation
+            if (primaryDelta > 0) {
+              goToPreviousPage() // Right scroll = previous page
+            } else {
+              goToNextPage() // Left scroll = next page
+            }
+          } else {
+            // Vertical scroll (up/down) - page navigation
+            if (primaryDelta > 0) {
+              goToPreviousPage() // Down scroll = previous page
+            } else {
+              goToNextPage() // Up scroll = next page
+            }
+          }
+          
+          // Reset scroll accumulator after page change
+          setScrollAccumulator({ x: 0, y: 0 })
+        }, 200) // 200ms debounce for page changes
+        
+        // Auto-reset scroll accumulator if no further scrolling
+        setTimeout(() => {
+          setScrollAccumulator({ x: 0, y: 0 })
+        }, 500) // Reset after 500ms of inactivity
+          
+          setPageChangeTimeout(newPageChangeTimeout)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    window.addEventListener('wheel', handleTouchScroll, { passive: false })
+    
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('wheel', handleTouchScroll)
+      
+      // Clean up zoom timeout
+      if (zoomTimeout) {
+        clearTimeout(zoomTimeout)
+      }
+      
+      // Clean up page change timeout
+      if (pageChangeTimeout) {
+        clearTimeout(pageChangeTimeout)
+      }
     }
-  }, [pageNumber, numPages])
+  }, [pageNumber, numPages, scale])
 
   // Track page viewing time
   useEffect(() => {
@@ -310,9 +435,25 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       console.log('book.originalFileName:', book.originalFileName)
       
       if (!book.filePath && !book.fileData) {
-        setError(t('reader.noFileError'))
-        setLoading(false)
-        return
+        console.log('No file path or data, attempting IndexedDB recovery...')
+        // Try to restore from IndexedDB first before showing error
+        try {
+          const restoredFile = await getFileFromIndexedDB(book.id)
+          if (restoredFile) {
+            console.log('✅ File restored from IndexedDB during initial check:', restoredFile.name)
+            book.fileData = restoredFile
+            setFileRestored(true)
+          } else {
+            setError(t('reader.noFileError'))
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.error('Failed to restore file from IndexedDB during initial check:', error)
+          setError(t('reader.noFileError'))
+          setLoading(false)
+          return
+        }
       }
       
       let fileToUse: File | string | null = null
@@ -482,7 +623,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
     
     loadEBook()
-  }, [book.filePath, book.fileData, t, book.originalFileName, book.fileType])
+  }, [book.filePath, book.fileData, t, book.originalFileName, book.fileType, retryCount])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log('PDF loaded successfully, pages:', numPages)
@@ -625,6 +766,19 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const downloadPDF = () => {
     // Implement PDF download logic here
     console.log('Downloading PDF:', book.title)
+  }
+
+  const retryLoadBook = async () => {
+    console.log('Retrying to load book...')
+    setRetryCount(prev => prev + 1)
+    setLoading(true)
+    setError(null)
+    
+    // Force reload by clearing states and triggering useEffect
+    setFileContent(null)
+    setFileRestored(false)
+    
+    // The useEffect will automatically trigger due to dependency changes
   }
 
   // Toggle fullscreen mode
@@ -1068,11 +1222,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                 返回图书馆
               </button>
               <button
-                onClick={() => {
-                  console.log('Retrying to load book:', book)
-                  setError(null)
-                  setLoading(true)
-                }}
+                onClick={retryLoadBook}
                 className="btn-secondary w-full"
               >
                 重试加载
@@ -1128,6 +1278,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
           box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4) !important;
           border-radius: 8px !important;
           background: white !important;
+          transition: transform 0.1s ease-out !important;
         }
         
         .fullscreen-mode .text-content {
@@ -1212,6 +1363,18 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         /* Smooth transitions */
         .fullscreen-mode * {
           transition: all 0.2s ease !important;
+        }
+        
+        /* Smooth zoom transitions for all content */
+        .pdf-page, .text-content, .epub-viewer {
+          transition: transform 0.1s ease-out !important;
+          will-change: transform !important;
+        }
+        
+        /* Optimize zoom performance */
+        .reader-content {
+          transform-style: preserve-3d !important;
+          backface-visibility: hidden !important;
         }
       `}} />
       
@@ -1351,26 +1514,59 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200"
+              onClick={() => setScale(prev => Math.max(0.25, Math.round((prev - 0.25) * 100) / 100))}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="缩小 (触摸板双指捏合)"
             >
               <ZoomOut className="h-4 w-4" />
             </button>
             
-            <span className="text-sm text-gray-600 min-w-[60px] text-center">
-              {Math.round(scale * 100)}%
-            </span>
+            <div className="flex flex-col items-center">
+              <span className="text-sm text-gray-600 min-w-[60px] text-center font-medium">
+                {Math.round(scale * 100)}%
+              </span>
+              <div className="text-xs text-gray-400 text-center">
+                <div>触摸板双指缩放</div>
+                <div className="text-[10px] opacity-70">或 +/- 键</div>
+              </div>
+            </div>
             
             <button
-              onClick={() => setScale(prev => Math.min(3.0, prev + 0.1))}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200"
+              onClick={() => setScale(prev => Math.min(5.0, Math.round((prev + 0.25) * 100) / 100))}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="放大 (触摸板双指展开)"
             >
               <ZoomIn className="h-4 w-4" />
             </button>
             
             <button
+              onClick={() => setScale(1.0)}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="重置缩放"
+            >
+              <span className="text-xs font-medium">100%</span>
+            </button>
+            
+            <button
+              onClick={() => setScale(1.5)}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="150% 适合阅读"
+            >
+              <span className="text-xs font-medium">150%</span>
+            </button>
+            
+            <button
+              onClick={() => setScale(2.0)}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="200% 大字体"
+            >
+              <span className="text-xs font-medium">200%</span>
+            </button>
+            
+            <button
               onClick={() => setRotation(prev => prev + 90)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200"
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+              title="旋转"
             >
               <RotateCw className="h-4 w-4" />
             </button>
@@ -1393,6 +1589,50 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </div>
           </div>
         )}
+        
+        {/* Touchpad gesture hint */}
+        {!isFullscreen && (
+          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-xs z-40 backdrop-blur-sm border border-blue-300 shadow-lg">
+            <div className="flex flex-col items-center space-y-1">
+              <div className="flex items-center space-x-2">
+                <span>🖐️</span>
+                <span>触摸板手势</span>
+              </div>
+              <div className="text-[10px] opacity-80 text-center">
+                <div>双指缩放 | 双指左右滑动翻页 | 双指上下滑动翻页</div>
+                <div>触摸板：需要明确的手势才能翻页</div>
+                <div>键盘：方向键翻页 | +/- 缩放 | 0 重置</div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Zoom feedback indicator */}
+        <AnimatePresence>
+          {isZooming && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-80 text-white px-6 py-4 rounded-xl text-lg z-50 backdrop-blur-sm border border-white/20 shadow-2xl"
+            >
+              <div className="flex flex-col items-center space-y-2">
+                <motion.span 
+                  className="text-2xl"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {scale > 1 ? '🔍' : scale < 1 ? '📏' : '📐'}
+                </motion.span>
+                <span className="font-bold">{Math.round(scale * 100)}%</span>
+                <span className="text-sm opacity-80">
+                  {scale > 1 ? '放大中...' : scale < 1 ? '缩小中...' : '原始大小'}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className={`flex justify-center ${isFullscreen ? 'p-0' : 'p-4'}`}>
           {loading && (
             <div className="flex items-center justify-center py-20">

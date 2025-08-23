@@ -18,31 +18,65 @@ const STORE_NAME = 'files'
 // Initialize IndexedDB
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
+    console.log('🔧 Initializing IndexedDB...')
+    
+    // Check if IndexedDB is supported
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      const error = new Error('IndexedDB is not supported in this browser')
+      console.error('❌ IndexedDB not supported:', error)
+      reject(error)
+      return
+    }
+    
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
+    request.onerror = (event) => {
+      console.error('❌ IndexedDB open error:', request.error)
+      reject(request.error)
+    }
+    
+    request.onsuccess = (event) => {
+      console.log('✅ IndexedDB opened successfully')
+      resolve(request.result)
+    }
     
     request.onupgradeneeded = (event) => {
+      console.log('🔄 IndexedDB upgrade needed, creating stores...')
       const db = (event.target as IDBOpenDBRequest).result
+      
+      // Create files store if it doesn't exist
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+        console.log('📁 Creating files store...')
+        const filesStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+        console.log('✅ Files store created')
       }
     }
   })
 }
 
 // Store file in IndexedDB
-const storeFileInIndexedDB = async (bookId: string, file: File): Promise<void> => {
+export const storeFileInIndexedDB = async (bookId: string, file: File): Promise<void> => {
   try {
+    console.log(`🔧 Storing file in IndexedDB for book: ${bookId}`, file.name)
     const db = await initDB()
     const transaction = db.transaction([STORE_NAME], 'readwrite')
     const store = transaction.objectStore(STORE_NAME)
     
-    await store.put({ id: bookId, file })
-    console.log(`File stored in IndexedDB for book: ${bookId}`)
+    const result = await store.put({ id: bookId, file })
+    console.log(`✅ File stored successfully in IndexedDB:`, result)
+    
+    // Verify storage
+    const verifyRequest = store.get(bookId)
+    verifyRequest.onsuccess = () => {
+      if (verifyRequest.result) {
+        console.log(`✅ File verification successful:`, verifyRequest.result.file.name)
+      } else {
+        console.error(`❌ File verification failed: no file found after storage`)
+      }
+    }
   } catch (error) {
-    console.error('Failed to store file in IndexedDB:', error)
+    console.error('❌ Failed to store file in IndexedDB:', error)
+    throw error
   }
 }
 
