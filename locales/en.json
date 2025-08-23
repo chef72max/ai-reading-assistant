@@ -145,12 +145,12 @@
   "reader": {
     "noFileError": "No ebook file path found",
     "unsupportedFormatError": "Unsupported file format: {format}",
-    "loadError": "Failed to load PDF, please check if the file is correct",
-    "loadingPDF": "Loading PDF...",
+    "loadError": "Failed to load ebook, please check if the file is correct",
+    "loadingPDF": "Loading ebook...",
     "filePath": "File Path",
     "notSet": "Not Set",
-    "noPDFFile": "No PDF File",
-    "uploadPDF": "Please upload a PDF file first",
+    "noPDFFile": "No ebook file",
+    "uploadPDF": "Please upload an ebook file first",
     "addNote": "Add Note",
     "download": "Download",
     "pageInfo": "Page {current} of {total}",
@@ -165,8 +165,13 @@
     "insight": "Insight",
     "noteContent": "Note Content",
     "writeYourThoughts": "Write your thoughts...",
-    "loadFailed": "PDF Loading Failed",
-    "returnToLibrary": "Return to Library"
+    "loadFailed": "Ebook Loading Failed",
+    "returnToLibrary": "Return to Library",
+    "formatNotSupported": "Format Not Yet Supported",
+    "formatNotSupportedDesc": "This format is not yet supported:",
+    "convertToPDF": "Please convert to PDF format for best compatibility",
+    "unknownFormat": "Unknown Format",
+    "unknownFormatDesc": "Unable to determine the file format"
   },
   "stats": {
     "title": "Reading Statistics",

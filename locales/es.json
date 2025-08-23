@@ -145,12 +145,12 @@
   "reader": {
     "noFileError": "No se encontró la ruta del archivo de ebook",
     "unsupportedFormatError": "Formato de archivo no soportado: {format}",
-    "loadError": "Error al cargar PDF, por favor verifica si el archivo es correcto",
-    "loadingPDF": "Cargando PDF...",
+    "loadError": "Error al cargar ebook, por favor verifica si el archivo es correcto",
+    "loadingPDF": "Cargando ebook...",
     "filePath": "Ruta del Archivo",
     "notSet": "No Establecido",
-    "noPDFFile": "Sin Archivo PDF",
-    "uploadPDF": "Por favor sube un archivo PDF primero",
+    "noPDFFile": "Sin archivo de ebook",
+    "uploadPDF": "Por favor sube un archivo de ebook primero",
     "addNote": "Agregar Nota",
     "download": "Descargar",
     "pageInfo": "Página {current} de {total}",
@@ -165,8 +165,13 @@
     "insight": "Perspicacia",
     "noteContent": "Contenido de la Nota",
     "writeYourThoughts": "Escribe tus pensamientos...",
-    "loadFailed": "Error al Cargar PDF",
-    "returnToLibrary": "Volver a la Biblioteca"
+    "loadFailed": "Error al Cargar Ebook",
+    "returnToLibrary": "Volver a la Biblioteca",
+    "formatNotSupported": "Formato No Soportado Aún",
+    "formatNotSupportedDesc": "Este formato no está soportado aún:",
+    "convertToPDF": "Por favor convierte a formato PDF para mejor compatibilidad",
+    "unknownFormat": "Formato Desconocido",
+    "unknownFormatDesc": "No se puede determinar el formato del archivo"
   },
   "stats": {
     "title": "Estadísticas de Lectura",

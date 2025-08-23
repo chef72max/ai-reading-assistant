@@ -145,12 +145,12 @@
   "reader": {
     "noFileError": "未找到电子书文件路径",
     "unsupportedFormatError": "不支持的文件格式: {format}",
-    "loadError": "PDF加载失败，请检查文件是否正确",
-    "loadingPDF": "正在加载PDF...",
+    "loadError": "电子书加载失败，请检查文件是否正确",
+    "loadingPDF": "正在加载电子书...",
     "filePath": "文件路径",
     "notSet": "未设置",
-    "noPDFFile": "没有PDF文件",
-    "uploadPDF": "请先上传PDF文件",
+    "noPDFFile": "没有电子书文件",
+    "uploadPDF": "请先上传电子书文件",
     "addNote": "添加笔记",
     "download": "下载",
     "pageInfo": "第 {current} 页，共 {total} 页",
@@ -165,8 +165,13 @@
     "insight": "见解",
     "noteContent": "笔记内容",
     "writeYourThoughts": "写下你的想法...",
-    "loadFailed": "PDF加载失败",
-    "returnToLibrary": "返回书库"
+    "loadFailed": "电子书加载失败",
+    "returnToLibrary": "返回书库",
+    "formatNotSupported": "格式暂不支持",
+    "formatNotSupportedDesc": "此格式暂不支持：",
+    "convertToPDF": "请转换为PDF格式以获得最佳兼容性",
+    "unknownFormat": "未知格式",
+    "unknownFormatDesc": "无法确定文件格式"
   },
   "stats": {
     "title": "阅读统计",

@@ -29,7 +29,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 
 // 备用worker源
 if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
+  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/pdf.worker.min.js`
 }
 
 interface EBookReaderProps {
@@ -48,10 +48,15 @@ const SUPPORTED_FORMATS = {
 }
 
 // 获取文件格式
-function getFileFormat(filePath: string): string {
+function getFileFormat(filePath: string, originalFileName?: string): string {
   // 处理blob URL
   if (filePath.startsWith('blob:')) {
-    // 对于blob URL，我们假设是PDF格式
+    // 对于blob URL，使用原始文件名来判断格式
+    if (originalFileName) {
+      const extension = originalFileName.split('.').pop()?.toLowerCase()
+      return extension || 'pdf'
+    }
+    // 如果没有原始文件名，默认假设是PDF
     return 'pdf'
   }
   const extension = filePath.split('.').pop()?.toLowerCase()
@@ -59,8 +64,8 @@ function getFileFormat(filePath: string): string {
 }
 
 // 检查是否支持该格式
-function isSupportedFormat(filePath: string): boolean {
-  const format = getFileFormat(filePath)
+function isSupportedFormat(filePath: string, originalFileName?: string): boolean {
+  const format = getFileFormat(filePath, originalFileName)
   return Object.keys(SUPPORTED_FORMATS).includes(format)
 }
 
@@ -80,7 +85,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [showHighlightMenu, setShowHighlightMenu] = useState(false)
   const [highlightColor, setHighlightColor] = useState<'yellow' | 'green' | 'blue' | 'pink' | 'purple'>('yellow')
   const [fileFormat, setFileFormat] = useState<string>('')
-  const [pdfFile, setPdfFile] = useState<File | string | null>(null)
+  const [fileContent, setFileContent] = useState<File | string | null>(null)
+  const [currentFormat, setCurrentFormat] = useState<string>('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -93,28 +99,90 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [pageNumber, numPages, book.id, updateBookProgress])
 
+  // 处理blob URL转换为可用的文件内容
+  const getFileFromBlob = async (blobUrl: string): Promise<File | string | null> => {
+    try {
+      console.log('开始转换blob URL:', blobUrl)
+      const response = await fetch(blobUrl)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const blob = await response.blob()
+      console.log('成功获取blob:', blob.size, 'bytes, type:', blob.type)
+      
+      // 根据文件类型处理
+      if (blob.type === 'application/pdf' || blob.type === '') {
+        // 对于PDF或未知类型，创建新的blob URL
+        const newBlobUrl = URL.createObjectURL(blob)
+        console.log('创建新的blob URL:', newBlobUrl)
+        return newBlobUrl
+      } else if (blob.type === 'text/plain' || blob.type === 'text/html') {
+        // 对于文本文件，读取内容
+        const text = await blob.text()
+        return text
+      } else {
+        // 对于其他格式，创建新的blob URL
+        const newBlobUrl = URL.createObjectURL(blob)
+        console.log('创建新的blob URL:', newBlobUrl)
+        return newBlobUrl
+      }
+    } catch (error) {
+      console.error('转换blob URL失败:', error)
+      return null
+    }
+  }
+
   // 使用useEffect来处理文件加载
   useEffect(() => {
-    if (!book.filePath) {
-      setError(t('reader.noFileError'))
-      setLoading(false)
-      return
+    const loadEBook = async () => {
+      if (!book.filePath) {
+        setError(t('reader.noFileError'))
+        setLoading(false)
+        return
+      }
+      
+      const format = getFileFormat(book.filePath, book.originalFileName)
+      setFileFormat(format)
+      setCurrentFormat(format)
+      
+      if (!isSupportedFormat(book.filePath, book.originalFileName)) {
+        setError(t('reader.unsupportedFormatError').replace('{format}', format))
+        setLoading(false)
+        return
+      }
+      
+      console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
+      setLoading(true)
+      setError(null)
+      
+      // 如果是blob URL，转换为可用的文件内容
+      if (book.filePath.startsWith('blob:')) {
+        try {
+          console.log('检测到blob URL，开始转换...')
+          const fileContent = await getFileFromBlob(book.filePath)
+          if (fileContent) {
+            console.log('成功转换blob URL，设置fileContent状态')
+            setFileContent(fileContent)
+            // 不在这里设置loading为false，让具体的渲染组件处理
+          } else {
+            console.error('转换blob URL失败')
+            setError(t('reader.loadError'))
+            setLoading(false)
+          }
+        } catch (error) {
+          console.error('转换blob URL过程中出错:', error)
+          setError(t('reader.loadError'))
+          setLoading(false)
+        }
+      } else {
+        console.log('使用直接文件路径:', book.filePath)
+        setFileContent(book.filePath)
+        setLoading(false)
+      }
     }
-
-    const format = getFileFormat(book.filePath)
-    setFileFormat(format)
-
-    if (!isSupportedFormat(book.filePath)) {
-      setError(t('reader.unsupportedFormatError').replace('{format}', format))
-      setLoading(false)
-      return
-    }
-
-    console.log('尝试加载电子书文件:', book.filePath, '格式:', format)
-    setLoading(true)
-    setError(null)
-    setPdfFile(book.filePath)
-  }, [book.filePath, t])
+    
+    loadEBook()
+  }, [book.filePath, t, book.originalFileName])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log('PDF加载成功，页数:', numPages)
@@ -186,6 +254,107 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const downloadPDF = () => {
     // 这里可以实现PDF下载逻辑
     console.log('下载PDF:', book.title)
+  }
+
+  // 渲染不同格式的电子书
+  const renderEBookContent = () => {
+    if (!fileContent) return null
+
+    switch (currentFormat) {
+      case 'pdf':
+        return (
+          <Document
+            file={fileContent}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">{t('reader.loadingPDF')}</p>
+                </div>
+              </div>
+            }
+            error={
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('reader.loadFailed')}</h3>
+                  <p className="text-gray-600">{t('reader.loadError')}</p>
+                </div>
+              </div>
+            }
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              rotate={rotation}
+              className="shadow-lg"
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              onLoadSuccess={() => {
+                console.log('页面加载成功:', pageNumber)
+              }}
+              onLoadError={(error) => {
+                console.error('页面加载失败:', error)
+              }}
+            />
+          </Document>
+        )
+      
+      case 'txt':
+      case 'html':
+        if (typeof fileContent === 'string') {
+          return (
+            <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+              <div className="prose prose-lg max-w-none">
+                <h1 className="text-2xl font-bold mb-6">{book.title}</h1>
+                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                  {fileContent}
+                </div>
+              </div>
+            </div>
+          )
+        }
+        break
+      
+      case 'epub':
+      case 'mobi':
+      case 'azw':
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {t('reader.formatNotSupported')}
+              </h3>
+              <p className="text-gray-600">
+                {t('reader.formatNotSupportedDesc')} {currentFormat.toUpperCase()}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                {t('reader.convertToPDF')}
+              </p>
+            </div>
+          </div>
+        )
+      
+      default:
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {t('reader.unknownFormat')}
+              </h3>
+              <p className="text-gray-600">
+                {t('reader.unknownFormatDesc')}
+              </p>
+            </div>
+          </div>
+        )
+    }
+    
+    return null
   }
 
   if (error) {
@@ -321,28 +490,11 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </div>
           )}
           
-          {!loading && pdfFile && (
-            <Document
-              file={pdfFile}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-            >
-              <Page
-                pageNumber={pageNumber}
-                scale={scale}
-                rotate={rotation}
-                className="shadow-lg"
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                onLoadError={(error) => {
-                  console.error('Page load error:', error)
-                  setError(t('reader.loadError'))
-                }}
-              />
-            </Document>
+          {!loading && fileContent && (
+            renderEBookContent()
           )}
           
-          {!loading && !pdfFile && !error && (
+          {!loading && !fileContent && !error && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />

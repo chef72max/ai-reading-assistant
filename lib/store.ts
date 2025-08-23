@@ -6,6 +6,7 @@ export interface Book {
   title: string
   author: string
   filePath: string
+  originalFileName?: string // 原始文件名，用于blob URL的格式检测
   fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
