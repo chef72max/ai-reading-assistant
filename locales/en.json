@@ -39,7 +39,9 @@
     "readingProgress": "Reading Progress",
     "lastRead": "Last Read",
     "noBooks": "No books yet",
-    "noBooksDesc": "Add your first book to start your reading journey"
+    "noBooksDesc": "Add your first book to start your reading journey",
+    "confirmDelete": "Are you sure you want to delete '{title}'?",
+    "bookDeleted": "Book deleted successfully"
   },
   "bookForm": {
     "title": "Add New Book",
@@ -112,7 +114,31 @@
     "noBookSelected": "No book selected",
     "selectBookFirst": "Please select a book first to start chatting with AI",
     "noConversation": "No conversation yet",
-    "startConversation": "Start a conversation by asking a question about your book"
+    "startConversation": "Start a conversation by asking a question about your book",
+    "welcome": "Hello! I'm your AI reading assistant. I can help you:",
+    "capabilities": [
+      "Answer questions about book content",
+      "Summarize chapter key points",
+      "Analyze important concepts",
+      "Generate mind maps",
+      "Provide reading advice"
+    ],
+    "selectBookPrompt": "Please select a book, then tell me what help you need!",
+    "summary": "Based on the content of the book, let me summarize the key points for you:",
+    "coreTheme": "📚 **Core Theme**: This book mainly explores...",
+    "questions": "Regarding this book, I suggest you think about these questions:",
+    "understandingQuestions": "🤔 **Understanding Questions**:",
+    "thinkingQuestions": "💭 **Thinking Questions**:",
+    "deepQuestions": "🔍 **Deep Questions**:",
+    "mindMap": "Let me generate a mind map structure for this book:",
+    "mainBranches": "🌳 **Main Branches**:",
+    "readingSuggestions": "Based on the content of this book, I provide you with the following reading suggestions:",
+    "readingStrategies": "📖 **Reading Strategies**:",
+    "focusAreas": "🎯 **Focus Areas**:",
+    "furtherReading": "📚 **Further Reading**:",
+    "defaultResponse": "Regarding this book, I understand your question is",
+    "conversationCleared": "Conversation cleared.",
+    "helpPrompt": "What can I help you with?"
   },
   "reader": {
     "noFileError": "No ebook file path found",

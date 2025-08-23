@@ -32,14 +32,16 @@
     "addBook": "Agregar Libro",
     "totalBooks": "Total de Libros",
     "currentlyReading": "Leyendo Actualmente",
-    "completed": "Completados",
+    "completed": "Completado",
     "averageProgress": "Progreso Promedio",
     "startReading": "Comenzar a Leer",
     "pauseReading": "Pausar Lectura",
     "readingProgress": "Progreso de Lectura",
     "lastRead": "Última Lectura",
     "noBooks": "Aún no hay libros",
-    "noBooksDesc": "Agrega tu primer libro para comenzar tu viaje de lectura"
+    "noBooksDesc": "Agrega tu primer libro para comenzar tu viaje de lectura",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar '{title}'?",
+    "bookDeleted": "Libro eliminado exitosamente"
   },
   "bookForm": {
     "title": "Agregar Nuevo Libro",
@@ -112,7 +114,31 @@
     "noBookSelected": "No hay libro seleccionado",
     "selectBookFirst": "Por favor selecciona un libro primero para comenzar a chatear con la IA",
     "noConversation": "Aún no hay conversación",
-    "startConversation": "Comienza una conversación haciendo una pregunta sobre tu libro"
+    "startConversation": "Comienza una conversación haciendo una pregunta sobre tu libro",
+    "welcome": "¡Hola! Soy tu asistente de lectura IA. Puedo ayudarte:",
+    "capabilities": [
+      "Responder preguntas sobre el contenido del libro",
+      "Resumir puntos clave del capítulo",
+      "Analizar conceptos importantes",
+      "Generar mapas mentales",
+      "Proporcionar consejos de lectura"
+    ],
+    "selectBookPrompt": "¡Por favor selecciona un libro, luego dime qué ayuda necesitas!",
+    "summary": "Basándome en el contenido del libro, déjame resumir los puntos clave para ti:",
+    "coreTheme": "📚 **Tema Principal**: Este libro explora principalmente...",
+    "questions": "Respecto a este libro, te sugiero que pienses en estas preguntas:",
+    "understandingQuestions": "🤔 **Preguntas de Comprensión**:",
+    "thinkingQuestions": "💭 **Preguntas de Reflexión**:",
+    "deepQuestions": "🔍 **Preguntas Profundas**:",
+    "mindMap": "Déjame generar una estructura de mapa mental para este libro:",
+    "mainBranches": "🌳 **Ramas Principales**:",
+    "readingSuggestions": "Basándome en el contenido de este libro, te proporciono las siguientes sugerencias de lectura:",
+    "readingStrategies": "📖 **Estrategias de Lectura**:",
+    "focusAreas": "🎯 **Áreas de Enfoque**:",
+    "furtherReading": "📚 **Lectura Adicional**:",
+    "defaultResponse": "Respecto a este libro, entiendo que tu pregunta es",
+    "conversationCleared": "Conversación limpiada.",
+    "helpPrompt": "¿En qué puedo ayudarte?"
   },
   "reader": {
     "noFileError": "No se encontró ruta de archivo de libro electrónico",

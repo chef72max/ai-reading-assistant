@@ -30,7 +30,7 @@
     "title": "我的书库",
     "subtitle": "管理你的阅读收藏",
     "addBook": "添加书籍",
-    "totalBooks": "总书籍",
+    "totalBooks": "总书籍数",
     "currentlyReading": "正在阅读",
     "completed": "已完成",
     "averageProgress": "平均进度",
@@ -39,7 +39,9 @@
     "readingProgress": "阅读进度",
     "lastRead": "最后阅读",
     "noBooks": "还没有书籍",
-    "noBooksDesc": "添加你的第一本书开始阅读之旅"
+    "noBooksDesc": "添加你的第一本书开始阅读之旅",
+    "confirmDelete": "确定要删除《{title}》吗？",
+    "bookDeleted": "书籍删除成功"
   },
   "bookForm": {
     "title": "添加新书籍",
@@ -112,7 +114,31 @@
     "noBookSelected": "未选择书籍",
     "selectBookFirst": "请先选择一本书开始与AI聊天",
     "noConversation": "还没有对话",
-    "startConversation": "通过询问关于书籍的问题开始对话"
+    "startConversation": "通过询问关于书籍的问题开始对话",
+    "welcome": "你好！我是你的AI阅读助手。我可以帮你：",
+    "capabilities": [
+      "解答关于书籍内容的问题",
+      "总结章节要点",
+      "分析重要概念",
+      "生成思维导图",
+      "提供阅读建议"
+    ],
+    "selectBookPrompt": "请选择一本书，然后告诉我你需要什么帮助！",
+    "summary": "基于书籍内容，我来为你总结一下主要要点：",
+    "coreTheme": "📚 **核心主题**：这本书主要探讨了...",
+    "questions": "关于这本书，我建议你可以思考这些问题：",
+    "understandingQuestions": "🤔 **理解性问题**：",
+    "thinkingQuestions": "💭 **思考性问题**：",
+    "deepQuestions": "🔍 **深入问题**：",
+    "mindMap": "我来为这本书生成一个思维导图结构：",
+    "mainBranches": "🌳 **主要分支**：",
+    "readingSuggestions": "基于这本书的内容，我为你提供以下阅读建议：",
+    "readingStrategies": "📖 **阅读策略**：",
+    "focusAreas": "🎯 **重点关注**：",
+    "furtherReading": "📚 **延伸阅读**：",
+    "defaultResponse": "关于这本书，我理解你的问题是",
+    "conversationCleared": "对话已清空。",
+    "helpPrompt": "有什么我可以帮助你的吗？"
   },
   "reader": {
     "noFileError": "没有找到电子书文件路径",

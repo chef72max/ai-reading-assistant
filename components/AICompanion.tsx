@@ -14,6 +14,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { useReadingStore, Book, Note } from '@/lib/store'
+import { useLanguage } from '@/contexts/LanguageContext'
 import toast from 'react-hot-toast'
 
 interface Message {
@@ -27,6 +28,7 @@ interface Message {
 
 export default function AICompanion() {
   const { books, notes, currentBook } = useReadingStore()
+  const { t } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -48,11 +50,11 @@ export default function AICompanion() {
       setMessages([{
         id: '1',
         type: 'ai',
-        content: '你好！我是你的AI阅读助手。我可以帮你：\n\n• 解答关于书籍内容的问题\n• 总结章节要点\n• 分析重要概念\n• 生成思维导图\n• 提供阅读建议\n\n请选择一本书，然后告诉我你需要什么帮助！',
+        content: t('ai.welcome') + '\n\n' + t('ai.capabilities').map(cap => '• ' + cap).join('\n') + '\n\n' + t('ai.selectBookPrompt'),
         timestamp: new Date()
       }])
     }
-  }, [])
+  }, [t])
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
@@ -87,7 +89,7 @@ export default function AICompanion() {
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
-      toast.error('AI响应生成失败，请重试')
+      toast.error(t('ai.responseFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -98,82 +100,70 @@ export default function AICompanion() {
     const bookNotes = notes.filter(n => n.bookId === bookId)
     
     if (!book) {
-      return '请先选择一本书，这样我就能更好地帮助你！'
+      return t('ai.selectBookFirst')
     }
 
     const lowerInput = userInput.toLowerCase()
     
-    if (lowerInput.includes('总结') || lowerInput.includes('要点')) {
-      return `基于《${book.title}》的内容，我来为你总结一下主要要点：\n\n` +
-             `📚 **核心主题**：这本书主要探讨了...\n` +
-             `🔑 **关键概念**：\n` +
-             `• 概念1：...\n` +
-             `• 概念2：...\n` +
-             `• 概念3：...\n\n` +
-             `💡 **主要观点**：\n` +
-             `• 观点1：...\n` +
-             `• 观点2：...\n` +
-             `• 观点3：...\n\n` +
-             `📝 **你的笔记**：我注意到你在这本书上做了 ${bookNotes.length} 条笔记，这些都很棒！`
+    if (lowerInput.includes('总结') || lowerInput.includes('要点') || lowerInput.includes('summary')) {
+      return t('ai.summary') + '\n\n' +
+             t('ai.coreTheme') + '\n' +
+             `📚 **${t('ai.coreTheme')}**：${t('ai.bookExplores')}\n` +
+             `🔑 **${t('ai.keyConcepts')}**：\n` +
+             `• ${t('ai.concept1')}\n` +
+             `• ${t('ai.concept2')}\n` +
+             `• ${t('ai.concept3')}\n\n` +
+             `💡 **${t('ai.mainInsights')}**：${t('ai.insightDescription')}`
     }
     
-    if (lowerInput.includes('问题') || lowerInput.includes('疑问')) {
-      return `关于《${book.title}》，我建议你可以思考这些问题：\n\n` +
-             `🤔 **理解性问题**：\n` +
-             `• 作者的主要论点是什么？\n` +
-             `• 书中的核心概念如何相互关联？\n\n` +
-             `💭 **思考性问题**：\n` +
-             `• 这些观点如何应用到现实生活中？\n` +
-             `• 你同意作者的哪些观点？为什么？\n\n` +
-             `🔍 **深入问题**：\n` +
-             `• 这本书与其他相关书籍有什么不同？\n` +
-             `• 作者的背景如何影响了他的观点？`
+    if (lowerInput.includes('问题') || lowerInput.includes('疑问') || lowerInput.includes('question')) {
+      return t('ai.questions') + '\n\n' +
+             t('ai.understandingQuestions') + '\n' +
+             `🤔 **${t('ai.understandingQuestions')}**：\n` +
+             `• ${t('ai.question1')}\n` +
+             `• ${t('ai.question2')}\n\n` +
+             t('ai.thinkingQuestions') + '\n' +
+             `💭 **${t('ai.thinkingQuestions')}**：\n` +
+             `• ${t('ai.question3')}\n` +
+             `• ${t('ai.question4')}\n\n` +
+             t('ai.deepQuestions') + '\n' +
+             `🔍 **${t('ai.deepQuestions')}**：\n` +
+             `• ${t('ai.question5')}\n` +
+             `• ${t('ai.question6')}`
     }
     
-    if (lowerInput.includes('思维导图') || lowerInput.includes('导图')) {
-      return `我来为《${book.title}》生成一个思维导图结构：\n\n` +
-             `🌳 **主要分支**：\n` +
-             `├── 核心概念\n` +
-             `│   ├── 概念A\n` +
-             `│   ├── 概念B\n` +
-             `│   └── 概念C\n` +
-             `├── 主要论点\n` +
-             `│   ├── 论点1\n` +
-             `│   ├── 论点2\n` +
-             `│   └── 论点3\n` +
-             `├── 应用场景\n` +
-             `│   ├── 个人发展\n` +
-             `│   ├── 工作实践\n` +
-             `│   └── 社会影响\n` +
-             `└── 相关延伸\n` +
-             `    ├── 相关书籍\n` +
-             `    ├── 实践案例\n` +
-             `    └── 未来方向\n\n` +
-             `💡 你可以点击"导出思维导图"按钮来下载完整的可视化图表！`
+    if (lowerInput.includes('思维导图') || lowerInput.includes('导图') || lowerInput.includes('mindmap')) {
+      return t('ai.mindMap') + '\n\n' +
+             t('ai.mainBranches') + '\n' +
+             `🌳 **${t('ai.mainBranches')}**：\n` +
+             `├── ${t('ai.coreConcepts')}\n` +
+             `├── ${t('ai.keyThemes')}\n` +
+             `├── ${t('ai.supportingIdeas')}\n` +
+             `└── ${t('ai.practicalApplications')}`
     }
     
-    if (lowerInput.includes('建议') || lowerInput.includes('推荐')) {
-      return `基于《${book.title}》的内容，我为你提供以下阅读建议：\n\n` +
-             `📖 **阅读策略**：\n` +
-             `• 先快速浏览目录和章节标题\n` +
-             `• 重点阅读核心章节\n` +
-             `• 做笔记时关注关键概念和例子\n\n` +
-             `🎯 **重点关注**：\n` +
-             `• 作者的核心观点和论证过程\n` +
-             `• 书中的实际案例和应用\n` +
-             `• 与你的知识体系的联系\n\n` +
-             `📚 **延伸阅读**：\n` +
-             `• 相关主题的其他书籍\n` +
-             `• 作者的学术论文或演讲\n` +
-             `• 实践应用的相关资源`
+    if (lowerInput.includes('建议') || lowerInput.includes('推荐') || lowerInput.includes('advice')) {
+      return t('ai.readingSuggestions') + '\n\n' +
+             t('ai.readingStrategies') + '\n' +
+             `📖 **${t('ai.readingStrategies')}**：\n` +
+             `• ${t('ai.strategy1')}\n` +
+             `• ${t('ai.strategy2')}\n` +
+             `• ${t('ai.strategy3')}\n\n` +
+             t('ai.focusAreas') + '\n' +
+             `🎯 **${t('ai.focusAreas')}**：\n` +
+             `• ${t('ai.focus1')}\n` +
+             `• ${t('ai.focus2')}\n` +
+             `• ${t('ai.focus3')}\n\n` +
+             t('ai.furtherReading') + '\n' +
+             `📚 **${t('ai.furtherReading')}**：\n` +
+             `• ${t('ai.relatedBooks')}\n` +
+             `• ${t('ai.similarTopics')}`
     }
     
-    return `关于《${book.title}》，我理解你的问题是"${userInput}"。\n\n` +
-           `让我基于这本书的内容来回答：\n\n` +
-           `📖 **相关内容**：这本书在第${page || '相关'}章节中提到了...\n\n` +
-           `💡 **我的理解**：根据书中的内容，我认为...\n\n` +
-           `🔍 **深入思考**：你可以进一步思考...\n\n` +
-           `📝 **建议**：我建议你重点关注书中的...部分，这对理解你的问题很有帮助。`
+    return t('ai.defaultResponse') + '\n\n' +
+           `${t('ai.basedOnBook')}：\n\n` +
+           `📖 **${t('ai.relatedContent')}**：${t('ai.chapterMentions')}${page || t('ai.relevant')}${t('ai.chapterMentions')}...\n\n` +
+           `💬 **${t('ai.myResponse')}**：${t('ai.responseContent')}`
   }
 
   const exportConversation = () => {
@@ -197,7 +187,7 @@ export default function AICompanion() {
       setMessages([{
         id: '1',
         type: 'ai',
-        content: '对话已清空。有什么我可以帮助你的吗？',
+        content: t('ai.conversationCleared') + '\n\n' + t('ai.helpPrompt'),
         timestamp: new Date()
       }])
       toast.success('对话已清空')

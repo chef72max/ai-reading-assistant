@@ -6,7 +6,7 @@ export interface Book {
   title: string
   author: string
   filePath: string
-  fileType: 'pdf' | 'epub' | 'mobi'
+  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
   progress: number
@@ -74,6 +74,7 @@ interface ReadingStore {
   addBook: (book: Omit<Book, 'id' | 'addedAt' | 'lastReadAt' | 'currentPage' | 'progress'>) => void
   setCurrentBook: (book: Book | null) => void
   updateBookProgress: (bookId: string, page: number, progress: number) => void
+  deleteBook: (bookId: string) => void
   
   startSession: (bookId: string) => void
   endSession: () => void
@@ -126,6 +127,12 @@ export const useReadingStore = create<ReadingStore>()(
               ? { ...book, currentPage: page, progress, lastReadAt: new Date() }
               : book
           ),
+        }))
+      },
+      
+      deleteBook: (bookId) => {
+        set((state) => ({
+          books: state.books.filter((book) => book.id !== bookId),
         }))
       },
       

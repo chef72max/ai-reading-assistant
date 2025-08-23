@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   BookOpen, 
   Clock, 
@@ -11,20 +11,24 @@ import {
   CheckCircle,
   FileText,
   MoreVertical,
-  Eye
+  Eye,
+  Trash2,
+  Edit
 } from 'lucide-react'
 import { useReadingStore, Book } from '@/lib/store'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS, zhCN, es } from 'date-fns/locale'
 import PDFReader from './PDFReader'
+import toast from 'react-hot-toast'
 
 export default function BookLibrary() {
-  const { books, currentBook, setCurrentBook, startSession, endSession } = useReadingStore()
+  const { books, currentBook, setCurrentBook, startSession, endSession, deleteBook } = useReadingStore()
   const { t, language } = useLanguage()
   const [filter, setFilter] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
   const [readingBook, setReadingBook] = useState<Book | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const getDateLocale = () => {
     switch (language) {
@@ -32,6 +36,18 @@ export default function BookLibrary() {
       case 'es': return es
       default: return enUS
     }
+  }
+
+  const handleDeleteBook = (book: Book) => {
+    if (confirm(t('library.confirmDelete').replace('{title}', book.title))) {
+      deleteBook(book.id)
+      toast.success(t('library.bookDeleted'))
+      setOpenMenuId(null)
+    }
+  }
+
+  const handleMenuToggle = (bookId: string) => {
+    setOpenMenuId(openMenuId === bookId ? null : bookId)
   }
 
   const filteredBooks = books.filter(book => {
@@ -184,9 +200,33 @@ export default function BookLibrary() {
                   </div>
                 </div>
                 
-                <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
-                  <MoreVertical className="h-4 w-4" />
-                </button>
+                <div className="relative">
+                  <button 
+                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    onClick={() => handleMenuToggle(book.id)}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {openMenuId === book.id && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                      >
+                        <button
+                          onClick={() => handleDeleteBook(book)}
+                          className="w-full flex items-center space-x-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 transition-colors duration-150"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>{t('common.delete')}</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
               {/* Progress Bar */}

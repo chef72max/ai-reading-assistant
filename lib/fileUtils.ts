@@ -1,6 +1,6 @@
 // 文件处理工具函数
 
-export const getFileType = (fileName: string): 'pdf' | 'epub' | 'mobi' => {
+export const getFileType = (fileName: string): 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' => {
   const extension = fileName.toLowerCase().split('.').pop()
   switch (extension) {
     case 'pdf':
@@ -9,6 +9,13 @@ export const getFileType = (fileName: string): 'pdf' | 'epub' | 'mobi' => {
       return 'epub'
     case 'mobi':
       return 'mobi'
+    case 'azw':
+      return 'azw'
+    case 'txt':
+      return 'txt'
+    case 'html':
+    case 'htm':
+      return 'html'
     default:
       return 'pdf'
   }
@@ -25,15 +32,29 @@ export const formatFileSize = (bytes: number): string => {
 }
 
 export const validateFile = (file: File): { valid: boolean; error?: string } => {
-  const maxSize = 100 * 1024 * 1024 // 100MB
-  const allowedTypes = ['application/pdf', 'application/epub+zip', 'application/x-mobipocket-ebook']
+  const maxSize = 200 * 1024 * 1024 // 200MB
+  const allowedTypes = [
+    'application/pdf',
+    'application/epub+zip',
+    'application/x-mobipocket-ebook',
+    'application/vnd.amazon.ebook',
+    'text/plain',
+    'text/html',
+    'application/octet-stream' // 某些MOBI文件可能使用这个类型
+  ]
+  
+  // 检查文件扩展名
+  const fileName = file.name.toLowerCase()
+  const allowedExtensions = ['.pdf', '.epub', '.mobi', '.azw', '.txt', '.html', '.htm']
+  const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext))
   
   if (file.size > maxSize) {
-    return { valid: false, error: '文件大小不能超过100MB' }
+    return { valid: false, error: '文件大小不能超过200MB' }
   }
   
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: '不支持的文件类型，请选择PDF、EPUB或MOBI文件' }
+  // 如果MIME类型不匹配，但扩展名正确，仍然允许
+  if (!allowedTypes.includes(file.type) && !hasValidExtension) {
+    return { valid: false, error: '不支持的文件类型，请选择PDF、EPUB、MOBI、AZW、TXT或HTML文件' }
   }
   
   return { valid: true }
