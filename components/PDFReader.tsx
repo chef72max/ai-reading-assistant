@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronLeft, 
@@ -26,9 +27,14 @@ import {
 import { useReadingStore, Book } from '@/lib/store'
 import { getFileFromIndexedDB } from '@/lib/store'
 import { getFileType, isSupportedFormat, detectFileFormat } from '@/lib/fileUtils'
-import { Document, Page, pdfjs } from 'react-pdf'
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
-import 'react-pdf/dist/esm/Page/TextLayer.css'
+// Dynamic imports to avoid SSR issues
+const Document = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Document })), { 
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center py-20">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+})
+const Page = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Page })), { ssr: false })
 import ePub from 'epubjs'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -158,13 +164,7 @@ const highlightStyles = `
   }
 `
 
-// Configure PDF.js worker - using more reliable configuration
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
-
-// Fallback worker source
-if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
-}
+// PDF.js worker will be configured in useEffect
 
 interface EBookReaderProps {
   book: Book
@@ -183,15 +183,19 @@ const SUPPORTED_FORMATS = {
 
 
 
-export default function EBookReader({ book, onClose }: EBookReaderProps) {
+function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   const { updateBookProgress, addNote, addHighlight, highlights } = useReadingStore()
   const { t, language } = useLanguage()
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState(book.currentPage || 1)
   const [scale, setScale] = useState(1.0)
+  const [visualScale, setVisualScale] = useState(1.0)
   const [rotation, setRotation] = useState(0)
   const [isZooming, setIsZooming] = useState(false)
   const [zoomTimeout, setZoomTimeout] = useState<NodeJS.Timeout | null>(null)
+  const zoomCommitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [zoomOriginStyle, setZoomOriginStyle] = useState<string | undefined>(undefined)
+  const scrollPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const [pageChangeTimeout, setPageChangeTimeout] = useState<NodeJS.Timeout | null>(null)
   const [scrollAccumulator, setScrollAccumulator] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [loading, setLoading] = useState(true)
@@ -208,6 +212,21 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   const [fileRestored, setFileRestored] = useState<boolean>(false)
   const [retryCount, setRetryCount] = useState<number>(0)
   const [localFileData, setLocalFileData] = useState<File | null>(null)
+
+  // Configure PDF.js worker on client side only
+  useEffect(() => {
+    const configurePDFWorker = async () => {
+      try {
+        const { pdfjs } = await import('react-pdf')
+        // Use a more reliable worker URL
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+        console.log('✅ PDF.js worker configured:', pdfjs.GlobalWorkerOptions.workerSrc)
+      } catch (error) {
+        console.error('❌ Failed to configure PDF.js:', error)
+      }
+    }
+    configurePDFWorker()
+  }, [])
 
   // Reading statistics
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date())
@@ -234,6 +253,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const epubContainerRef = useRef<HTMLDivElement>(null)
 
   // Update reading progress
   useEffect(() => {
@@ -266,15 +286,20 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       } else if (event.key === '=' || event.key === '+') {
         // Zoom in with keyboard
         event.preventDefault()
-        setScale(prev => Math.min(5.0, Math.round((prev + 0.25) * 100) / 100))
+        const newScale = Math.min(5.0, Math.round((scale + 0.25) * 100) / 100)
+        setScale(newScale)
+        setVisualScale(newScale)
       } else if (event.key === '-') {
         // Zoom out with keyboard
         event.preventDefault()
-        setScale(prev => Math.max(0.25, Math.round((prev - 0.25) * 100) / 100))
+        const newScale = Math.max(0.25, Math.round((scale - 0.25) * 100) / 100)
+        setScale(newScale)
+        setVisualScale(newScale)
       } else if (event.key === '0') {
         // Reset zoom with keyboard
         event.preventDefault()
         setScale(1.0)
+        setVisualScale(1.0)
       }
     }
 
@@ -283,33 +308,61 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       // Check if it's a pinch gesture (pinch gestures have deltaY and deltaX)
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault()
-        
-        // Clear previous zoom timeout
-        if (zoomTimeout) {
-          clearTimeout(zoomTimeout)
-        }
-        
-        // Calculate zoom factor based on wheel delta
-        // Use even smaller increments for ultra-smooth zooming
-        const zoomFactor = event.deltaY > 0 ? 0.99 : 1.01
-        
-        // Show zoom feedback only when zooming significantly
+
+        // Show zoom feedback and capture scroll position
         if (!isZooming) {
           setIsZooming(true)
+          // Capture current scroll position
+          const container = containerRef.current
+          if (container) {
+            scrollPositionRef.current = {
+              x: container.scrollLeft,
+              y: container.scrollTop
+            }
+          }
         }
-        
-        // Real-time zoom update for smooth animation
-        setScale(prev => {
-          const targetScale = Math.max(0.25, Math.min(5.0, prev * zoomFactor))
-          // Round to 2 decimal places for more predictable zooming
-          return Math.round(targetScale * 100) / 100
-        })
-        
-        // Hide zoom feedback after a short delay
-        const newTimeout = setTimeout(() => {
+
+        // Track cursor as zoom origin - find PDF page element
+        let pageEl = containerRef.current?.querySelector('.react-pdf__Page') as HTMLElement | null
+        if (!pageEl) {
+          pageEl = containerRef.current?.querySelector('canvas')?.parentElement as HTMLElement | null
+        }
+        const rect = pageEl?.getBoundingClientRect()
+        if (rect) {
+          const ox = ((event.clientX - rect.left) / rect.width) * 100
+          const oy = ((event.clientY - rect.top) / rect.height) * 100
+          setZoomOriginStyle(`${Math.max(0, Math.min(100, ox))}% ${Math.max(0, Math.min(100, oy))}%`)
+        }
+
+        // Smooth visual zoom (CSS only)
+        const sensitivity = 300
+        const factor = Math.pow(2, -event.deltaY / sensitivity)
+        const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
+        setVisualScale(prev => clamp(prev * factor, 0.25, 5.0))
+
+        // Debounce heavy PDF re-render commit
+        if (zoomCommitTimeoutRef.current) clearTimeout(zoomCommitTimeoutRef.current)
+        zoomCommitTimeoutRef.current = setTimeout(() => {
+          const target = clamp(visualScale, 0.25, 5.0)
+          const roundedTarget = Math.round(target * 100) / 100
+          setScale(roundedTarget)
+          setVisualScale(roundedTarget) // Keep them in sync
           setIsZooming(false)
-        }, 500) // 500ms delay for zoom feedback
-        
+          setZoomOriginStyle(undefined)
+          
+          // Restore scroll position after a brief delay to prevent jumping
+          setTimeout(() => {
+            const container = containerRef.current
+            if (container && scrollPositionRef.current) {
+              container.scrollLeft = scrollPositionRef.current.x
+              container.scrollTop = scrollPositionRef.current.y
+            }
+          }, 50)
+        }, 120)
+
+        // Keep UI hint timer
+        if (zoomTimeout) clearTimeout(zoomTimeout)
+        const newTimeout = setTimeout(() => setIsZooming(false), 500)
         setZoomTimeout(newTimeout)
       }
     }
@@ -390,7 +443,10 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         clearTimeout(pageChangeTimeout)
       }
     }
-  }, [pageNumber, numPages, scale])
+  }, [pageNumber, numPages, scale, visualScale])
+
+  // Sync visual scale when scale changes via buttons/keys
+  useEffect(() => { setVisualScale(scale) }, [scale])
 
   // Track page viewing time
   useEffect(() => {
@@ -555,31 +611,41 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               return
             }
           } else if (detectedFormat === 'epub') {
-            // Load EPUB content
+            // Load EPUB content into a guaranteed container using a ref
             try {
-              const epubUrl = URL.createObjectURL(fileToUse)
-              const epubBookInstance = ePub(epubUrl)
+              let epubBookInstance
+              try {
+                // Read as ArrayBuffer to avoid any URL/404 issues
+                const buf = await fileToUse.arrayBuffer()
+                epubBookInstance = ePub(buf)
+              } catch (e) {
+                const epubUrl = URL.createObjectURL(fileToUse)
+                epubBookInstance = ePub(epubUrl)
+              }
               setEpubBook(epubBookInstance)
-              
-              epubBookInstance.ready.then(() => {
-                const rendition = epubBookInstance.renderTo('#epub-viewer', {
-                  width: '100%',
-                  height: '100%',
-                  flow: 'paginated'
-                })
-                setEpubRendition(rendition)
-                rendition.display()
-                setLoading(false)
-              }).catch((err: any) => {
-                console.error('EPUB loading error:', err)
-                const errorMessage = err instanceof Error ? err.message : '未知错误'
-                setError(t('reader.epubLoadFailed') + ': ' + errorMessage)
-                setLoading(false)
+
+              await epubBookInstance.ready
+
+              // Ensure container exists (next tick if needed)
+              if (!epubContainerRef.current) {
+                await new Promise((r) => setTimeout(r, 0))
+              }
+              const container = epubContainerRef.current || '#epub-viewer'
+
+              const rendition = epubBookInstance.renderTo(container as any, {
+                width: '100%',
+                height: '100%',
+                flow: 'paginated'
               })
+              setEpubRendition(rendition)
+
+              rendition.on('rendered', () => setLoading(false))
+              await rendition.display()
+              setLoading(false)
             } catch (err: any) {
-              console.error('EPUB processing error:', err)
+              console.error('EPUB processing/loading error:', err)
               const errorMessage = err instanceof Error ? err.message : '未知错误'
-              setError(t('reader.epubProcessFailed') + ': ' + errorMessage)
+              setError(t('reader.epubLoadFailed') + ': ' + errorMessage)
               setLoading(false)
             }
             return
@@ -587,8 +653,12 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             // For PDF and other binary formats, create object URL
             try {
               const objectUrl = URL.createObjectURL(fileToUse)
-              console.log('Created object URL for File:', objectUrl)
+              console.log('✅ Created object URL for PDF:', objectUrl)
+              console.log('File size:', fileToUse.size, 'bytes')
+              console.log('File type:', fileToUse.type)
               setFileContent(objectUrl)
+              console.log('✅ FileContent set for PDF, Document component will handle loading')
+              // Don't set loading to false here - let the Document component handle it
             } catch (err) {
               console.error('Failed to create object URL:', err)
               const errorMessage = err instanceof Error ? err.message : '未知错误'
@@ -598,6 +668,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             }
           }
           
+          // Set loading to false so the Document component can render
           setLoading(false)
         } catch (err) {
           console.error('File processing error:', err)
@@ -638,7 +709,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
     
     loadEBook()
-  }, [book.id, retryCount])
+  }, [book.id])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log('PDF loaded successfully, pages:', numPages)
@@ -757,6 +828,19 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       setNoteContent('')
       setShowHighlightMenu(false)
       setPendingHighlightRects(null)
+      // Ensure overlay renders immediately after adding - multiple attempts
+      if (currentFormat === 'pdf') {
+        // Try immediately
+        renderOverlayHighlights()
+        // Also try after next frame
+        requestAnimationFrame(() => {
+          renderOverlayHighlights()
+        })
+        // And once more after a short delay
+        setTimeout(() => {
+          renderOverlayHighlights()
+        }, 50)
+      }
     }
   }
 
@@ -906,8 +990,10 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [])
 
-  // Do not auto-enter fullscreen; user controls it explicitly
-  useEffect(() => {}, [])
+  // Debug render condition
+  useEffect(() => {
+    console.log('🖼️ Render state changed - loading:', loading, 'fileContent:', !!fileContent, 'currentFormat:', currentFormat)
+  }, [loading, fileContent, currentFormat])
   
   // Hide Next.js dev panel and other dev elements in fullscreen
   useEffect(() => {
@@ -1052,11 +1138,26 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;')
 
-  // Render overlay rectangles for PDF highlights
+  // Render overlay rectangles for PDF highlights - simplified
   const renderOverlayHighlights = () => {
     if (currentFormat !== 'pdf') return
-    const pageEl = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`) as HTMLElement | null
-    if (!pageEl) return
+    
+    // Find the PDF page element
+    let pageEl = containerRef.current?.querySelector('.react-pdf__Page') as HTMLElement | null
+    if (!pageEl) {
+      pageEl = containerRef.current?.querySelector('[data-page-number]') as HTMLElement | null
+    }
+    if (!pageEl) {
+      pageEl = containerRef.current?.querySelector('canvas')?.parentElement as HTMLElement | null
+    }
+    if (!pageEl) {
+      console.log('PDF page element not found, retrying in 100ms')
+      setTimeout(renderOverlayHighlights, 100)
+      return
+    }
+    
+    console.log('Rendering highlights for page', pageNumber, 'highlights:', pageHighlights.length)
+    
     const overlayClass = 'pdf-highlight-overlay'
     let overlay = pageEl.querySelector(`.${overlayClass}`) as HTMLElement | null
     if (!overlay) {
@@ -1069,23 +1170,35 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         right: '0',
         bottom: '0',
         pointerEvents: 'none',
-        zIndex: 3 as any
+        zIndex: 10 as any
       })
       pageEl.appendChild(overlay)
     }
     overlay.innerHTML = ''
+    
     pageHighlights.forEach((h: any) => {
       if (!h.rects || h.rects.length === 0) return
       h.rects.forEach((r: any) => {
         const el = document.createElement('div')
+        // Tighten vertical fit and slightly expand horizontally to bridge word gaps
+        const expandX = 0.003
+        const shrinkY = 0.72
+        const offsetY = (1 - shrinkY) / 2
+        const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val))
+        const leftN = clamp(r.x - expandX, 0, 1)
+        const widthN = clamp(r.width + expandX * 2, 0, 1 - leftN)
+        const topN = clamp(r.y + r.height * offsetY, 0, 1)
+        const heightN = clamp(r.height * shrinkY, 0, 1 - topN)
         Object.assign(el.style, {
           position: 'absolute',
-          left: `${r.x * 100}%`,
-          top: `${r.y * 100}%`,
-          width: `${r.width * 100}%`,
-          height: `${r.height * 100}%`,
-          background: getHighlightRGBA(h.color || 'yellow', 0.35),
-          borderRadius: '2px'
+          left: `${leftN * 100}%`,
+          top: `${topN * 100}%`,
+          width: `${widthN * 100}%`,
+          height: `${heightN * 100}%`,
+          background: getHighlightRGBA(h.color || 'yellow', 0.5),
+          borderRadius: '3px',
+          mixBlendMode: 'multiply' as any,
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.02) inset'
         })
         overlay!.appendChild(el)
       })
@@ -1094,20 +1207,45 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
   // Render different ebook formats
   const renderEBookContent = () => {
-    if (!fileContent) return null
+    console.log('🎨 renderEBookContent called')
+    console.log('📁 fileContent:', fileContent)
+    console.log('📋 currentFormat:', currentFormat)
+    console.log('⏳ loading:', loading)
+    console.log('❌ error:', error)
+    
+    if (!fileContent) {
+      console.log('❌ No fileContent, returning null')
+      return null
+    }
 
     switch (currentFormat) {
       case 'pdf':
+        console.log('📄 Rendering PDF with Document component')
+        console.log('📄 PDF file URL:', fileContent)
         return (
           <Document
             file={fileContent}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
+            onLoadSuccess={(pdf) => {
+              console.log('✅ PDF Document loaded successfully:', pdf.numPages, 'pages')
+              onDocumentLoadSuccess(pdf)
+            }}
+            onLoadError={(error) => {
+              console.error('❌ PDF Document loading failed:', error)
+              setError(`PDF loading failed: ${error.message}`)
+              setLoading(false)
+            }}
+            options={{
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+              cMapPacked: true,
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
+            }}
             loading={
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">{t('reader.loadingPDF')}</p>
+                  <p className="text-xs text-gray-400 mt-2">File type: {typeof fileContent}</p>
+                  <p className="text-xs text-gray-400">Format: {currentFormat}</p>
                 </div>
               </div>
             }
@@ -1117,6 +1255,13 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
                   <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">{t('reader.loadFailed')}</h3>
                   <p className="text-gray-600">{t('reader.loadError')}</p>
+                  <p className="text-xs text-gray-400 mt-2">File: {typeof fileContent}</p>
+                  <button 
+                    onClick={() => setRetryCount(prev => prev + 1)}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Retry Loading
+                  </button>
                 </div>
               </div>
             }
@@ -1130,12 +1275,15 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               renderAnnotationLayer={true}
               onLoadSuccess={() => {
                 console.log('Page loaded successfully:', pageNumber)
+                setLoading(false)
                 setTimeout(() => {
                   renderOverlayHighlights()
-                }, 0)
+                }, 100)
               }}
               onLoadError={(error) => {
                 console.error('Page loading failed:', error)
+                setError('PDF page loading failed: ' + error.message)
+                setLoading(false)
               }}
             />
           </Document>
@@ -1209,18 +1357,18 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       case 'epub':
         return (
           <div className="w-full h-full">
-            {epubRendition ? (
-              <div 
-                id="epub-viewer" 
-                className="w-full h-full bg-white"
-                style={{ 
-                  fontSize: '16px', 
-                  lineHeight: '1.6',
-                  padding: '20px',
-                  overflowY: 'auto'
-                }}
-              />
-            ) : (
+            <div 
+              ref={epubContainerRef}
+              id="epub-viewer" 
+              className="w-full h-full bg-white"
+              style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.6',
+                padding: '20px',
+                overflowY: 'auto'
+              }}
+            />
+            {!epubRendition && (
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="text-center max-w-md">
                   <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
@@ -1513,6 +1661,21 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
           transform-style: preserve-3d !important;
           backface-visibility: hidden !important;
         }
+        
+        /* Remove any gaps around PDF content */
+        .react-pdf__Document {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        .react-pdf__Page {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        .pdf-page {
+          margin: 0 !important;
+        }
       `}} />
       
       {/* Header */}
@@ -1645,7 +1808,11 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setScale(prev => Math.max(0.25, Math.round((prev - 0.25) * 100) / 100))}
+              onClick={() => {
+                const newScale = Math.max(0.25, Math.round((scale - 0.25) * 100) / 100)
+                setScale(newScale)
+                setVisualScale(newScale)
+              }}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
               title="缩小 (触摸板双指捏合)"
             >
@@ -1654,7 +1821,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             
             <div className="flex flex-col items-center">
               <span className="text-sm text-gray-600 min-w-[60px] text-center font-medium">
-                {Math.round(scale * 100)}%
+                {Math.round(visualScale * 100)}%
               </span>
               <div className="text-xs text-gray-400 text-center">
                 <div>触摸板双指缩放</div>
@@ -1663,7 +1830,13 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </div>
             
             <button
-              onClick={() => setScale(prev => Math.min(5.0, Math.round((prev + 0.25) * 100) / 100))}
+              onClick={() => {
+                setScale(prev => {
+                  const next = Math.min(5.0, Math.round((prev + 0.25) * 100) / 100)
+                  setVisualScale(next)
+                  return next
+                })
+              }}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
               title="放大 (触摸板双指展开)"
             >
@@ -1671,7 +1844,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </button>
             
             <button
-              onClick={() => setScale(1.0)}
+              onClick={() => { setScale(1.0); setVisualScale(1.0) }}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
               title="重置缩放"
             >
@@ -1679,7 +1852,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </button>
             
             <button
-              onClick={() => setScale(1.5)}
+              onClick={() => { setScale(1.5); setVisualScale(1.5) }}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
               title="150% 适合阅读"
             >
@@ -1687,7 +1860,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </button>
             
             <button
-              onClick={() => setScale(2.0)}
+              onClick={() => { setScale(2.0); setVisualScale(2.0) }}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
               title="200% 大字体"
             >
@@ -1722,21 +1895,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         )}
         
         {/* Touchpad gesture hint */}
-        {!isFullscreen && (
-          <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-xs z-40 backdrop-blur-sm border border-blue-300 shadow-lg">
-            <div className="flex flex-col items-center space-y-1">
-              <div className="flex items-center space-x-2">
-                <span>🖐️</span>
-                <span>触摸板手势</span>
-              </div>
-              <div className="text-[10px] opacity-80 text-center">
-                <div>双指缩放 | 双指左右滑动翻页 | 双指上下滑动翻页</div>
-                <div>触摸板：需要明确的手势才能翻页</div>
-                <div>键盘：方向键翻页 | +/- 缩放 | 0 重置</div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Touchpad hint removed per request */}
         
         {/* Zoom feedback indicator */}
         <AnimatePresence>
@@ -1764,7 +1923,7 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className={`flex justify-center ${isFullscreen ? 'p-0' : 'p-4'}`}>          {loading && (
+        <div className="flex justify-center">          {loading && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -1780,6 +1939,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               {renderEBookContent()}
             </div>
           )}
+          
+
           
           {!loading && !fileContent && !error && (
             <div className="flex items-center justify-center py-20">
@@ -1931,3 +2092,18 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     </div>
   )
 }
+
+// Export as dynamic component to prevent SSR issues
+const EBookReader = dynamic(() => Promise.resolve(EBookReaderComponent), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p>Loading PDF Reader...</p>
+      </div>
+    </div>
+  )
+})
+
+export default EBookReader
