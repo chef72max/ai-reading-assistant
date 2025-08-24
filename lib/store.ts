@@ -118,7 +118,7 @@ export interface Book {
   filePath: string
   originalFileName?: string // Original filename for blob URL format detection
   fileData?: File // Actual file object for direct access
-  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
+  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'azw3' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
   progress: number
@@ -133,7 +133,7 @@ export interface SerializableBook {
   author: string
   filePath: string
   originalFileName?: string
-  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
+  fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'azw3' | 'txt' | 'html'
   totalPages?: number
   currentPage: number
   progress: number
@@ -169,6 +169,7 @@ export interface Highlight {
   color: 'yellow' | 'green' | 'blue' | 'pink' | 'purple'
   note?: string
   createdAt: Date
+  rects?: { x: number; y: number; width: number; height: number }[]
 }
 
 export interface ReadingGoal {

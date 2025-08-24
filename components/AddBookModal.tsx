@@ -20,7 +20,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
     title: string
     author: string
     filePath: string
-    fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html'
+    fileType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'azw3' | 'txt' | 'html'
   }>({
     title: '',
     author: '',
@@ -94,15 +94,15 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
       
       // Set file information
       setSelectedFile(file)
-      const inferredType = getFileType(file.name) as 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' | 'unknown'
-      const normalizedType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'txt' | 'html' =
-        inferredType === 'pdf' || inferredType === 'epub' || inferredType === 'mobi' || inferredType === 'azw' || inferredType === 'txt' || inferredType === 'html'
+      const inferredType = getFileType(file.name) as 'pdf' | 'epub' | 'mobi' | 'azw' | 'azw3' | 'txt' | 'html' | 'unknown'
+      const normalizedType: 'pdf' | 'epub' | 'mobi' | 'azw' | 'azw3' | 'txt' | 'html' =
+        inferredType === 'pdf' || inferredType === 'epub' || inferredType === 'mobi' || inferredType === 'azw' || inferredType === 'azw3' || inferredType === 'txt' || inferredType === 'html'
           ? inferredType
           : 'pdf'
       setFormData(prev => ({
         ...prev,
-        title: parsedInfo.title || prev.title,
-        author: parsedInfo.author || prev.author,
+        title: cleanBookTitle(parsedInfo.title) || prev.title,
+        author: cleanAuthorName(parsedInfo.author) || prev.author,
         filePath: file.name, // Use filename as path
         fileType: normalizedType
       }))
@@ -234,6 +234,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                     <option value="epub">{t('bookForm.epub')}</option>
                     <option value="mobi">{t('bookForm.mobi')}</option>
                     <option value="azw">{t('bookForm.azw')}</option>
+                    <option value="azw3">AZW3</option>
                     <option value="txt">{t('bookForm.txt')}</option>
                     <option value="html">{t('bookForm.html')}</option>
                   </select>
@@ -246,7 +247,7 @@ export default function AddBookModal({ isOpen, onClose }: AddBookModalProps) {
                   <div className="relative">
                     <input
                       type="file"
-                      accept=".pdf,.epub,.mobi,.azw,.txt,.html,.htm"
+                      accept=".pdf,.epub,.mobi,.azw,.azw3,.txt,.html,.htm"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="file-upload"

@@ -6,6 +6,7 @@ export const SUPPORTED_FORMATS = {
   epub: 'application/epub+zip',
   mobi: 'application/x-mobipocket-ebook',
   azw: 'application/vnd.amazon.ebook',
+  azw3: 'application/vnd.amazon.mobi8-ebook',
   txt: 'text/plain',
   html: 'text/html',
   htm: 'text/html'
@@ -64,6 +65,9 @@ export const detectFileFormat = (filename: string, mimeType?: string): string =>
       case 'application/vnd.amazon.ebook':
         console.log('✅ MIME type indicates AZW');
         return 'azw'
+      case 'application/vnd.amazon.mobi8-ebook':
+        console.log('✅ MIME type indicates AZW3');
+        return 'azw3'
       case 'text/plain':
         console.log('✅ MIME type indicates TXT');
         return 'txt'
@@ -97,6 +101,10 @@ export const detectFileFormat = (filename: string, mimeType?: string): string =>
         if (lowerFilename.includes('.azw')) {
           console.log('✅ Found .azw in filename');
           return 'azw';
+        }
+        if (lowerFilename.includes('.azw3')) {
+          console.log('✅ Found .azw3 in filename');
+          return 'azw3';
         }
         
         console.log('❌ All detection methods failed');
@@ -178,6 +186,7 @@ export function getFileType(filename: string): string {
     case 'pdf': return 'pdf'
     case 'epub': return 'epub'
     case 'mobi': return 'mobi'
+    case 'azw3': return 'azw3'
     case 'txt': return 'txt'
     case 'html':
     case 'htm': return 'html'
@@ -189,6 +198,7 @@ export function getFileType(filename: string): string {
       if (lower.includes('.txt') || lower.endsWith('txt')) return 'txt'
       if (lower.includes('.html') || lower.includes('.htm') || lower.endsWith('html') || lower.endsWith('htm')) return 'html'
       if (lower.includes('.azw') || lower.endsWith('azw')) return 'azw'
+      if (lower.includes('.azw3') || lower.endsWith('azw3')) return 'azw3'
       return 'unknown'
     }
   }

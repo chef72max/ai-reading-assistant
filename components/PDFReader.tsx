@@ -218,6 +218,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
   // Highlights for current page
   const [pageHighlights, setPageHighlights] = useState<any[]>([])
+  // Pending rects captured at selection time (PDF only)
+  const [pendingHighlightRects, setPendingHighlightRects] = useState<{ x: number; y: number; width: number; height: number }[] | null>(null)
   
   // Page reading history
   const [pageReadingHistory, setPageReadingHistory] = useState<{[key: number]: number}>({})
@@ -244,6 +246,17 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   // Keyboard navigation and touchpad gestures
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        }
+        document.body.classList.remove('fullscreen')
+        document.documentElement.classList.remove('fullscreen')
+        document.body.classList.remove('fullscreen-override')
+        setIsFullscreen(false)
+        onClose()
+        return
+      }
       if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
         event.preventDefault()
         goToPreviousPage()
@@ -421,13 +434,19 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       h => h.bookId === book.id && h.page === pageNumber
     )
     setPageHighlights(currentPageHighlights)
-    // For PDF, re-apply highlights to the text layer after state update
     if (currentFormat === 'pdf') {
       setTimeout(() => {
-        applyHighlightsToPDF()
+        renderOverlayHighlights()
       }, 0)
     }
   }, [highlights, book.id, pageNumber])
+
+  // Re-render overlays on zoom/rotation/fullscreen changes
+  useEffect(() => {
+    if (currentFormat === 'pdf') {
+      renderOverlayHighlights()
+    }
+  }, [scale, rotation, isFullscreen])
 
   
 
@@ -676,6 +695,33 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
         console.log('✅ Text selected:', selectedText)
         setSelectedText(selectedText)
         setShowHighlightMenu(true)
+        // Capture rects at selection time for PDF to avoid losing selection on button click
+        if (currentFormat === 'pdf') {
+          try {
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0)
+              const clientRects = Array.from(range.getClientRects())
+              const pageEl = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`) as HTMLElement | null
+              const pageRect = pageEl?.getBoundingClientRect()
+              if (pageRect && clientRects.length > 0) {
+                const rects = clientRects
+                  .filter(r => r.width > 1 && r.height > 1)
+                  .map(r => ({
+                    x: (r.left - pageRect.left) / pageRect.width,
+                    y: (r.top - pageRect.top) / pageRect.height,
+                    width: r.width / pageRect.width,
+                    height: r.height / pageRect.height
+                  }))
+                setPendingHighlightRects(rects.length > 0 ? rects : null)
+              } else {
+                setPendingHighlightRects(null)
+              }
+            }
+          } catch (e) {
+            console.log('Failed to compute selection rects at selection time:', e)
+            setPendingHighlightRects(null)
+          }
+        }
         
         // Position highlight menu near selection
         try {
@@ -694,25 +740,23 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
 
   const handleAddHighlight = () => {
     if (selectedText.trim()) {
-      console.log('Adding highlight:', {
-        bookId: book.id,
-        page: pageNumber,
-        text: selectedText,
-        color: highlightColor,
-        note: noteContent || undefined
-      })
-      
+      // Use rects captured at selection time for PDF; fall back to none
+      const rects: { x: number; y: number; width: number; height: number }[] | undefined =
+        currentFormat === 'pdf' ? (pendingHighlightRects ?? undefined) : undefined
+
       addHighlight({
         bookId: book.id,
         page: pageNumber,
         text: selectedText,
         color: highlightColor,
-        note: noteContent || undefined
+        note: noteContent || undefined,
+        ...(rects && { rects })
       })
       
       setSelectedText('')
       setNoteContent('')
       setShowHighlightMenu(false)
+      setPendingHighlightRects(null)
     }
   }
 
@@ -846,7 +890,14 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
   // Handle fullscreen change events
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      const fs = !!document.fullscreenElement
+      setIsFullscreen(fs)
+      if (!fs) {
+        // Ensure all fullscreen classes and overlays are removed on ESC
+        document.body.classList.remove('fullscreen')
+        document.documentElement.classList.remove('fullscreen')
+        document.body.classList.remove('fullscreen-override')
+      }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange)
@@ -855,17 +906,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     }
   }, [])
 
-  // Auto-enter fullscreen when component mounts
-  useEffect(() => {
-    // Auto-enter fullscreen after a short delay
-    const timer = setTimeout(() => {
-      if (!document.fullscreenElement) {
-        toggleFullscreen()
-      }
-    }, 1000) // 1 second delay
-
-    return () => clearTimeout(timer)
-  }, []) // Only run once on mount
+  // Do not auto-enter fullscreen; user controls it explicitly
+  useEffect(() => {}, [])
   
   // Hide Next.js dev panel and other dev elements in fullscreen
   useEffect(() => {
@@ -990,6 +1032,14 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
     return colors[color as keyof typeof colors] || colors.yellow
   }
 
+  const getHighlightRGBA = (color: string, alpha: number) => {
+    const hex = getHighlightColor(color)
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+
   // Escape special characters for regex
   const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\\]/g, '\\$&')
 
@@ -1002,46 +1052,42 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;')
 
-  // Apply highlights to the current PDF text layer
-  const applyHighlightsToPDF = () => {
+  // Render overlay rectangles for PDF highlights
+  const renderOverlayHighlights = () => {
     if (currentFormat !== 'pdf') return
-    const container = containerRef.current
-    if (!container) return
-
-    const textLayers = container.querySelectorAll('.react-pdf__Page__textLayer')
-    textLayers.forEach((layer) => {
-      const spans = Array.from(layer.querySelectorAll('span'))
-      spans.forEach((span) => {
-        const originalText = span.textContent || ''
-        if (originalText.length === 0) return
-
-        // Build processed string with markers
-        let processed = originalText
-        pageHighlights.forEach((h: any) => {
-          if (!h?.text) return
-          const pattern = new RegExp(escapeRegExp(h.text), 'g')
-          const startMarker = `__HL_START_${(h.color || 'yellow').toUpperCase()}__`
-          const endMarker = '__HL_END__'
-          processed = processed.replace(pattern, `${startMarker}$&${endMarker}`)
+    const pageEl = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`) as HTMLElement | null
+    if (!pageEl) return
+    const overlayClass = 'pdf-highlight-overlay'
+    let overlay = pageEl.querySelector(`.${overlayClass}`) as HTMLElement | null
+    if (!overlay) {
+      overlay = document.createElement('div')
+      overlay.className = overlayClass
+      Object.assign(overlay.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        pointerEvents: 'none',
+        zIndex: 3 as any
+      })
+      pageEl.appendChild(overlay)
+    }
+    overlay.innerHTML = ''
+    pageHighlights.forEach((h: any) => {
+      if (!h.rects || h.rects.length === 0) return
+      h.rects.forEach((r: any) => {
+        const el = document.createElement('div')
+        Object.assign(el.style, {
+          position: 'absolute',
+          left: `${r.x * 100}%`,
+          top: `${r.y * 100}%`,
+          width: `${r.width * 100}%`,
+          height: `${r.height * 100}%`,
+          background: getHighlightRGBA(h.color || 'yellow', 0.35),
+          borderRadius: '2px'
         })
-
-        // Escape entire text for safe HTML
-        let escaped = escapeHtml(processed)
-
-        // Replace markers with highlight spans
-        const uniqueColors = Array.from(new Set(pageHighlights.map((h: any) => h.color || 'yellow')))
-        uniqueColors.forEach((color: string) => {
-          const startMarker = `__HL_START_${color.toUpperCase()}__`
-          const startMarkerRegex = new RegExp(escapeRegExp(startMarker), 'g')
-          escaped = escaped.replace(
-            startMarkerRegex,
-            `<span class="highlight-${color}" data-pdf-highlight="true">`
-          )
-        })
-        escaped = escaped.replace(new RegExp(escapeRegExp('__HL_END__'), 'g'), '</span>')
-
-        // Inject back
-        span.innerHTML = escaped
+        overlay!.appendChild(el)
       })
     })
   }
@@ -1084,9 +1130,8 @@ export default function EBookReader({ book, onClose }: EBookReaderProps) {
               renderAnnotationLayer={true}
               onLoadSuccess={() => {
                 console.log('Page loaded successfully:', pageNumber)
-                // Defer to ensure text layer spans are mounted
                 setTimeout(() => {
-                  applyHighlightsToPDF()
+                  renderOverlayHighlights()
                 }, 0)
               }}
               onLoadError={(error) => {
