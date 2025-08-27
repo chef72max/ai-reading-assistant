@@ -8,6 +8,11 @@
 @import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 @import 'react-pdf/dist/esm/Page/TextLayer.css';
 
+/* Remove unexpected gap between header/nav and content */
+.reader-header { margin-bottom: 0 !important; }
+.reader-nav { margin-top: 0 !important; }
+.reader-content { padding-top: 0 !important; }
+
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -27,14 +27,8 @@ import {
 import { useReadingStore, Book } from '@/lib/store'
 import { getFileFromIndexedDB } from '@/lib/store'
 import { getFileType, isSupportedFormat, detectFileFormat } from '@/lib/fileUtils'
-// Dynamic imports to avoid SSR issues
-const Document = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Document })), { 
-  ssr: false,
-  loading: () => <div className="flex items-center justify-center py-20">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-  </div>
-})
-const Page = dynamic(() => import('react-pdf').then(mod => ({ default: mod.Page })), { ssr: false })
+// Client-only PDF wrapper to avoid SSR issues with react-pdf
+const ClientPDF = dynamic(() => import('./ClientPDF'), { ssr: false })
 import ePub from 'epubjs'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -213,20 +207,14 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   const [retryCount, setRetryCount] = useState<number>(0)
   const [localFileData, setLocalFileData] = useState<File | null>(null)
 
-  // Configure PDF.js worker on client side only
-  useEffect(() => {
-    const configurePDFWorker = async () => {
-      try {
-        const { pdfjs } = await import('react-pdf')
-        // Use a more reliable worker URL
-        pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
-        console.log('✅ PDF.js worker configured:', pdfjs.GlobalWorkerOptions.workerSrc)
-      } catch (error) {
-        console.error('❌ Failed to configure PDF.js:', error)
-      }
-    }
-    configurePDFWorker()
-  }, [])
+  // Memoize react-pdf Document options to avoid unnecessary reloads that can destroy transport
+  const documentOptions = useMemo(() => ({
+    cMapUrl: 'https://unpkg.com/pdfjs-dist@5.4.54/cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.4.54/standard_fonts/',
+  }), [])
+
+  // PDF.js worker configured inside ClientPDF to avoid SSR issues
 
   // Reading statistics
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date())
@@ -390,7 +378,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
           // Clear previous page change timeout to prevent rapid page changes
           if (pageChangeTimeout) {
             clearTimeout(pageChangeTimeout)
-          }
+          }       
           
                   // Debounced page change to prevent rapid scrolling
         const newPageChangeTimeout = setTimeout(() => {
@@ -497,12 +485,12 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
     }
   }, [highlights, book.id, pageNumber])
 
-  // Re-render overlays on zoom/rotation/fullscreen changes
+  // Re-render overlays on zoom/rotation/fullscreen changes with debouncing
   useEffect(() => {
-    if (currentFormat === 'pdf') {
-      renderOverlayHighlights()
-    }
-  }, [scale, rotation, isFullscreen])
+    if (currentFormat !== 'pdf') return
+    const id = setTimeout(() => renderOverlayHighlights(), 50)
+    return () => clearTimeout(id)
+  }, [scale, rotation, isFullscreen, pageNumber])
 
   
 
@@ -832,14 +820,25 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       if (currentFormat === 'pdf') {
         // Try immediately
         renderOverlayHighlights()
-        // Also try after next frame
+        // After next frame (canvas paint)
         requestAnimationFrame(() => {
           renderOverlayHighlights()
         })
-        // And once more after a short delay
+        // After short delay
         setTimeout(() => {
           renderOverlayHighlights()
-        }, 50)
+        }, 80)
+        // Observe DOM mutations to re-apply when text layer renders
+        try {
+          const pageRoot = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`)
+          if (pageRoot) {
+            const observer = new MutationObserver(() => {
+              renderOverlayHighlights()
+            })
+            observer.observe(pageRoot, { childList: true, subtree: true })
+            setTimeout(() => observer.disconnect(), 500)
+          }
+        } catch {}
       }
     }
   }
@@ -1143,7 +1142,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
     if (currentFormat !== 'pdf') return
     
     // Find the PDF page element
-    let pageEl = containerRef.current?.querySelector('.react-pdf__Page') as HTMLElement | null
+    let pageEl = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`) as HTMLElement | null
     if (!pageEl) {
       pageEl = containerRef.current?.querySelector('[data-page-number]') as HTMLElement | null
     }
@@ -1154,6 +1153,11 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       console.log('PDF page element not found, retrying in 100ms')
       setTimeout(renderOverlayHighlights, 100)
       return
+    }
+    // Ensure the page element is a positioned container for absolute overlay
+    const computed = window.getComputedStyle(pageEl)
+    if (computed.position === 'static') {
+      pageEl.style.position = 'relative'
     }
     
     console.log('Rendering highlights for page', pageNumber, 'highlights:', pageHighlights.length)
@@ -1170,7 +1174,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         right: '0',
         bottom: '0',
         pointerEvents: 'none',
-        zIndex: 10 as any
+        zIndex: 999 as any
       })
       pageEl.appendChild(overlay)
     }
@@ -1223,22 +1227,9 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         console.log('📄 Rendering PDF with Document component')
         console.log('📄 PDF file URL:', fileContent)
         return (
-          <Document
+          <ClientPDF
             file={fileContent}
-            onLoadSuccess={(pdf) => {
-              console.log('✅ PDF Document loaded successfully:', pdf.numPages, 'pages')
-              onDocumentLoadSuccess(pdf)
-            }}
-            onLoadError={(error) => {
-              console.error('❌ PDF Document loading failed:', error)
-              setError(`PDF loading failed: ${error.message}`)
-              setLoading(false)
-            }}
-            options={{
-              cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-              cMapPacked: true,
-              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
-            }}
+            options={documentOptions}
             loading={
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -1265,28 +1256,38 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
                 </div>
               </div>
             }
-          >
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              rotate={rotation}
-              className="shadow-lg pdf-page"
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              onLoadSuccess={() => {
-                console.log('Page loaded successfully:', pageNumber)
-                setLoading(false)
-                setTimeout(() => {
-                  renderOverlayHighlights()
-                }, 100)
-              }}
-              onLoadError={(error) => {
-                console.error('Page loading failed:', error)
-                setError('PDF page loading failed: ' + error.message)
-                setLoading(false)
-              }}
-            />
-          </Document>
+            pageNumber={pageNumber}
+            scale={scale}
+            rotate={rotation}
+            className="shadow-lg pdf-page"
+            onDocumentLoadSuccess={({ numPages }) => {
+              console.log('✅ PDF Document loaded successfully:', numPages, 'pages')
+              onDocumentLoadSuccess({ numPages })
+            }}
+            onDocumentLoadError={(error) => {
+              console.error('❌ PDF Document loading failed:', error)
+              setError(`PDF loading failed: ${error.message}`)
+              setLoading(false)
+            }}
+            onPageLoadSuccess={() => {
+              console.log('Page loaded successfully:', pageNumber)
+              setLoading(false)
+              // Render overlay after text/annotation layers settle
+              requestAnimationFrame(() => {
+                renderOverlayHighlights()
+                setTimeout(() => renderOverlayHighlights(), 80)
+              })
+            }}
+            onPageLoadError={(error) => {
+              if (error && typeof (error as any).message === 'string' && (error as any).message.includes('Transport destroyed')) {
+                console.warn('Ignoring PDF.js transport destroyed during re-render')
+                return
+              }
+              console.error('Page loading failed:', error)
+              setError('PDF page loading failed: ' + (error as any).message)
+              setLoading(false)
+            }}
+          />
         )
       
       case 'txt':
@@ -1520,7 +1521,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   }
 
   return (
-    <div className={`fixed inset-0 z-50 bg-white ${isFullscreen ? 'fullscreen-mode' : ''}`}>
+    <div className={`fixed inset-0 z-[1000] bg-white ${isFullscreen ? 'fullscreen-mode' : ''}`}>
       {/* Highlight Styles */}
       <style dangerouslySetInnerHTML={{ __html: highlightStyles }} />
       
@@ -1679,7 +1680,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       `}} />
       
       {/* Header */}
-      <header className={`bg-white border-b border-gray-200 px-4 py-3 reader-header transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'}`}>        <div className="flex items-center justify-between">
+      <header className={`bg-white border-b border-gray-200 px-4 py-3 reader-header transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'} z-[1001]`}>        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={onClose}
@@ -1757,7 +1758,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       </header>
 
       {/* Navigation Bar */}
-      <div className={`bg-gray-50 border-b border-gray-200 px-4 py-2 reader-nav transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'}`}>        <div className="flex items-center justify-between">
+      <div className={`bg-gray-50 border-b border-gray-200 px-4 py-2 reader-nav transition-all duration-300 ${isFullscreen && !showUI ? 'opacity-0 pointer-events-none transform -translate-y-full' : 'opacity-100'} z-[1001]`}>        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={goToPreviousPage}
