@@ -22,6 +22,7 @@ type Props = {
   onDocumentLoadError: (error: Error) => void
   onPageLoadSuccess: () => void
   onPageLoadError: (error: Error) => void
+  onPageRenderSuccess?: () => void
 }
 
 export default function ClientPDF({
@@ -37,22 +38,25 @@ export default function ClientPDF({
   onDocumentLoadError,
   onPageLoadSuccess,
   onPageLoadError,
+  onPageRenderSuccess,
 }: Props) {
-  useEffect(() => {
-    try {
-      try {
-        // pdfjs.version is available; prefer modern worker
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${(pdfjs as any).version}/build/pdf.worker.min.mjs`
-      } catch {
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`
-      }
-      // eslint-disable-next-line no-console
-      console.log('✅ ClientPDF worker set to:', (pdfjs as any).GlobalWorkerOptions.workerSrc)
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to set PDF worker in ClientPDF:', err)
+  // Configure worker synchronously on first render for reliability
+  try {
+    const anyPdfjs = pdfjs as any
+    anyPdfjs.disableWorker = false
+    const ver = typeof anyPdfjs.version === 'string' && anyPdfjs.version ? anyPdfjs.version : '3.11.174'
+    const isV3 = ver.startsWith('3.')
+    const workerFile = isV3 ? 'pdf.worker.min.js' : 'pdf.worker.min.mjs'
+    const desired = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${ver}/build/${workerFile}`
+    if (anyPdfjs.GlobalWorkerOptions?.workerSrc !== desired) {
+      anyPdfjs.GlobalWorkerOptions.workerSrc = desired
     }
-  }, [])
+    // eslint-disable-next-line no-console
+    console.log('[ClientPDF] workerSrc =', anyPdfjs.GlobalWorkerOptions.workerSrc)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('❌ PDF worker configuration error:', err)
+  }
 
   return (
     <Document
@@ -64,6 +68,7 @@ export default function ClientPDF({
       onLoadError={onDocumentLoadError as any}
     >
       <Page
+        key={`${pageNumber}-${Math.round(scale * 100)}-${rotate}`}
         pageNumber={pageNumber}
         scale={scale}
         rotate={rotate}
@@ -72,6 +77,8 @@ export default function ClientPDF({
         renderAnnotationLayer={true}
         onLoadSuccess={onPageLoadSuccess}
         onLoadError={onPageLoadError}
+        loading={<div style={{ padding: 24, color: '#6b7280' }}>Loading page…</div>}
+        onRenderSuccess={onPageRenderSuccess as any}
       />
     </Document>
   )

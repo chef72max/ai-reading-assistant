@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 // Fallback UUID generator for environments where crypto.randomUUID is not available
 const generateId = (): string => {
@@ -420,88 +420,63 @@ export const useReadingStore = create<ReadingStore>()(
     }),
     {
       name: 'reading-store',
-      // Custom serialization to handle File objects and Dates and preserve StorageValue shape
-      serialize: (storageValue: any) => {
-        const state = storageValue?.state ?? storageValue
-        const serializableState = {
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => {
+        return {
           ...state,
           books: (state.books || []).map((book: any) => ({
             ...book,
             addedAt: book.addedAt instanceof Date ? book.addedAt.toISOString() : new Date(book.addedAt).toISOString(),
             lastReadAt: book.lastReadAt instanceof Date ? book.lastReadAt.toISOString() : new Date(book.lastReadAt).toISOString(),
-            // Remove fileData as it can't be serialized
-            fileData: undefined
+            fileData: undefined,
           })),
-          sessions: (state.sessions || []).map((session: any) => ({
-            ...session,
-            startTime: session.startTime instanceof Date ? session.startTime.toISOString() : new Date(session.startTime).toISOString(),
-            endTime: session.endTime ? (session.endTime instanceof Date ? session.endTime.toISOString() : new Date(session.endTime).toISOString()) : undefined
+          sessions: (state.sessions || []).map((s: any) => ({
+            ...s,
+            startTime: s.startTime instanceof Date ? s.startTime.toISOString() : new Date(s.startTime).toISOString(),
+            endTime: s.endTime ? (s.endTime instanceof Date ? s.endTime.toISOString() : new Date(s.endTime).toISOString()) : undefined,
           })),
-          notes: (state.notes || []).map((note: any) => ({
-            ...note,
-            createdAt: note.createdAt instanceof Date ? note.createdAt.toISOString() : new Date(note.createdAt).toISOString()
+          notes: (state.notes || []).map((n: any) => ({
+            ...n,
+            createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : new Date(n.createdAt).toISOString(),
           })),
-          highlights: (state.highlights || []).map((highlight: any) => ({
-            ...highlight,
-            createdAt: highlight.createdAt instanceof Date ? highlight.createdAt.toISOString() : new Date(highlight.createdAt).toISOString()
+          highlights: (state.highlights || []).map((h: any) => ({
+            ...h,
+            createdAt: h.createdAt instanceof Date ? h.createdAt.toISOString() : new Date(h.createdAt).toISOString(),
           })),
-          goals: (state.goals || []).map((goal: any) => ({
-            ...goal,
-            startDate: goal.startDate instanceof Date ? goal.startDate.toISOString() : new Date(goal.startDate).toISOString(),
-            endDate: goal.endDate ? (goal.endDate instanceof Date ? goal.endDate.toISOString() : new Date(goal.endDate).toISOString()) : undefined
-          }))
+          goals: (state.goals || []).map((g: any) => ({
+            ...g,
+            startDate: g.startDate instanceof Date ? g.startDate.toISOString() : new Date(g.startDate).toISOString(),
+            endDate: g.endDate ? (g.endDate instanceof Date ? g.endDate.toISOString() : new Date(g.endDate).toISOString()) : undefined,
+          })),
         }
-        return JSON.stringify({ state: serializableState, version: storageValue?.version ?? 0 })
       },
-      // Custom deserialization to restore Date objects and StorageValue shape
-      deserialize: (str: string) => {
-        try {
-          const parsed: any = JSON.parse(str)
-          const rawState = parsed?.state ?? parsed
-          const revivedState = {
-            ...rawState,
-            books: (rawState.books || []).map((book: any) => ({
-              ...book,
-              addedAt: new Date(book.addedAt),
-              lastReadAt: new Date(book.lastReadAt)
-            })),
-            sessions: (rawState.sessions || []).map((session: any) => ({
-              ...session,
-              startTime: new Date(session.startTime),
-              endTime: session.endTime ? new Date(session.endTime) : undefined
-            })),
-            notes: (rawState.notes || []).map((note: any) => ({
-              ...note,
-              createdAt: new Date(note.createdAt)
-            })),
-            highlights: (rawState.highlights || []).map((highlight: any) => ({
-              ...highlight,
-              createdAt: new Date(highlight.createdAt)
-            })),
-            goals: (rawState.goals || []).map((goal: any) => ({
-              ...goal,
-              startDate: new Date(goal.startDate),
-              endDate: goal.endDate ? new Date(goal.endDate) : undefined
-            }))
-          }
-          return { state: revivedState, version: parsed?.version ?? 0 }
-        } catch (error) {
-          console.error('Failed to deserialize state:', error)
-          // Return default state if deserialization fails, preserving shape
-          return {
-            state: {
-              books: [],
-              currentBook: null,
-              sessions: [],
-              currentSession: null,
-              notes: [],
-              highlights: [],
-              goals: []
-            },
-            version: 0
-          }
-        }
-      }
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        // revive Date instances after hydration
+        state.books = (state.books || []).map((b: any) => ({
+          ...b,
+          addedAt: new Date(b.addedAt),
+          lastReadAt: new Date(b.lastReadAt),
+        }))
+        state.sessions = (state.sessions || []).map((s: any) => ({
+          ...s,
+          startTime: new Date(s.startTime),
+          endTime: s.endTime ? new Date(s.endTime) : undefined,
+        }))
+        state.notes = (state.notes || []).map((n: any) => ({
+          ...n,
+          createdAt: new Date(n.createdAt),
+        }))
+        state.highlights = (state.highlights || []).map((h: any) => ({
+          ...h,
+          createdAt: new Date(h.createdAt),
+        }))
+        state.goals = (state.goals || []).map((g: any) => ({
+          ...g,
+          startDate: new Date(g.startDate),
+          endDate: g.endDate ? new Date(g.endDate) : undefined,
+        }))
+      },
     }
   )
 )

@@ -206,6 +206,9 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   const [fileRestored, setFileRestored] = useState<boolean>(false)
   const [retryCount, setRetryCount] = useState<number>(0)
   const [localFileData, setLocalFileData] = useState<File | null>(null)
+  // Watchdog for stalled PDF page rendering
+  const [clientPdfKey, setClientPdfKey] = useState(0)
+  const pageRenderWatchdogRef = useRef<number | null>(null)
 
   // Memoize react-pdf Document options to avoid unnecessary reloads that can destroy transport
   const documentOptions = useMemo(() => ({
@@ -242,6 +245,26 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const epubContainerRef = useRef<HTMLDivElement>(null)
+
+  // Smooth scale tween helper
+  const animateScaleTo = (targetScale: number, duration = 160) => {
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
+    const to = clamp(Math.round(targetScale * 100) / 100, 0.25, 5.0)
+    const from = scale
+    if (Math.abs(to - from) < 0.001) return
+    const start = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      const next = from + (to - from) * eased
+      setScale(next)
+      setVisualScale(next)
+      if (t < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }
+  const overlayResizeObserverRef = useRef<ResizeObserver | null>(null)
+  const overlayMutationObserverRef = useRef<MutationObserver | null>(null)
 
   // Update reading progress
   useEffect(() => {
@@ -322,36 +345,15 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
           setZoomOriginStyle(`${Math.max(0, Math.min(100, ox))}% ${Math.max(0, Math.min(100, oy))}%`)
         }
 
-        // Smooth visual zoom (CSS only)
-        const sensitivity = 300
+        // Immediate but smooth zoom: apply easing tween to final target
+        const sensitivity = 250
         const factor = Math.pow(2, -event.deltaY / sensitivity)
-        const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
-        setVisualScale(prev => clamp(prev * factor, 0.25, 5.0))
+        const target = scale * factor
+        animateScaleTo(target, 140)
+        setIsZooming(false)
+        setZoomOriginStyle(undefined)
 
-        // Debounce heavy PDF re-render commit
-        if (zoomCommitTimeoutRef.current) clearTimeout(zoomCommitTimeoutRef.current)
-        zoomCommitTimeoutRef.current = setTimeout(() => {
-          const target = clamp(visualScale, 0.25, 5.0)
-          const roundedTarget = Math.round(target * 100) / 100
-          setScale(roundedTarget)
-          setVisualScale(roundedTarget) // Keep them in sync
-          setIsZooming(false)
-          setZoomOriginStyle(undefined)
-          
-          // Restore scroll position after a brief delay to prevent jumping
-          setTimeout(() => {
-            const container = containerRef.current
-            if (container && scrollPositionRef.current) {
-              container.scrollLeft = scrollPositionRef.current.x
-              container.scrollTop = scrollPositionRef.current.y
-            }
-          }, 50)
-        }, 120)
-
-        // Keep UI hint timer
-        if (zoomTimeout) clearTimeout(zoomTimeout)
-        const newTimeout = setTimeout(() => setIsZooming(false), 500)
-        setZoomTimeout(newTimeout)
+        // No HUD timer; we remove extra HUD to keep it clean
       }
     }
 
@@ -433,6 +435,14 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
     }
   }, [pageNumber, numPages, scale, visualScale])
 
+  // Double click to zoom (Shift + double click to zoom out)
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    if (currentFormat !== 'pdf') return
+    event.preventDefault()
+    const factor = event.shiftKey ? 1 / 1.25 : 1.25
+    animateScaleTo(scale * factor, 160)
+  }
+
   // Sync visual scale when scale changes via buttons/keys
   useEffect(() => { setVisualScale(scale) }, [scale])
 
@@ -488,7 +498,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
   // Re-render overlays on zoom/rotation/fullscreen changes with debouncing
   useEffect(() => {
     if (currentFormat !== 'pdf') return
-    const id = setTimeout(() => renderOverlayHighlights(), 50)
+    const id = setTimeout(() => scheduleOverlayRender(), 30)
     return () => clearTimeout(id)
   }, [scale, rotation, isFullscreen, pageNumber])
 
@@ -704,6 +714,12 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
     setNumPages(numPages)
     setLoading(false)
     setError(null)
+    // Start watchdog; if page never renders, remount ClientPDF
+    if (pageRenderWatchdogRef.current) window.clearTimeout(pageRenderWatchdogRef.current)
+    pageRenderWatchdogRef.current = window.setTimeout(() => {
+      console.warn('⚠️ Page render stalled, remounting ClientPDF')
+      setClientPdfKey((k) => k + 1)
+    }, 5000)
     
     // Update book progress if we have valid page count
     if (numPages > 0 && book.totalPages !== numPages) {
@@ -818,27 +834,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       setPendingHighlightRects(null)
       // Ensure overlay renders immediately after adding - multiple attempts
       if (currentFormat === 'pdf') {
-        // Try immediately
-        renderOverlayHighlights()
-        // After next frame (canvas paint)
-        requestAnimationFrame(() => {
-          renderOverlayHighlights()
-        })
-        // After short delay
-        setTimeout(() => {
-          renderOverlayHighlights()
-        }, 80)
-        // Observe DOM mutations to re-apply when text layer renders
-        try {
-          const pageRoot = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`)
-          if (pageRoot) {
-            const observer = new MutationObserver(() => {
-              renderOverlayHighlights()
-            })
-            observer.observe(pageRoot, { childList: true, subtree: true })
-            setTimeout(() => observer.disconnect(), 500)
-          }
-        } catch {}
+        scheduleOverlayRender()
       }
     }
   }
@@ -1154,16 +1150,19 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       setTimeout(renderOverlayHighlights, 100)
       return
     }
-    // Ensure the page element is a positioned container for absolute overlay
-    const computed = window.getComputedStyle(pageEl)
+    // Prefer text layer as overlay container to match transforms/scaling exactly
+    const textLayerEl = pageEl.querySelector('.react-pdf__Page__textContent') as HTMLElement | null
+    const containerEl = (textLayerEl || pageEl) as HTMLElement
+    // Ensure the container is positioned for absolute overlay
+    const computed = window.getComputedStyle(containerEl)
     if (computed.position === 'static') {
-      pageEl.style.position = 'relative'
+      containerEl.style.position = 'relative'
     }
     
     console.log('Rendering highlights for page', pageNumber, 'highlights:', pageHighlights.length)
     
     const overlayClass = 'pdf-highlight-overlay'
-    let overlay = pageEl.querySelector(`.${overlayClass}`) as HTMLElement | null
+    let overlay = containerEl.querySelector(`.${overlayClass}`) as HTMLElement | null
     if (!overlay) {
       overlay = document.createElement('div')
       overlay.className = overlayClass
@@ -1176,7 +1175,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         pointerEvents: 'none',
         zIndex: 999 as any
       })
-      pageEl.appendChild(overlay)
+      containerEl.appendChild(overlay)
     }
     overlay.innerHTML = ''
     
@@ -1185,8 +1184,8 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
       h.rects.forEach((r: any) => {
         const el = document.createElement('div')
         // Tighten vertical fit and slightly expand horizontally to bridge word gaps
-        const expandX = 0.003
-        const shrinkY = 0.72
+        const expandX = 0.006
+        const shrinkY = 0.86
         const offsetY = (1 - shrinkY) / 2
         const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val))
         const leftN = clamp(r.x - expandX, 0, 1)
@@ -1199,14 +1198,88 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
           top: `${topN * 100}%`,
           width: `${widthN * 100}%`,
           height: `${heightN * 100}%`,
-          background: getHighlightRGBA(h.color || 'yellow', 0.5),
+          background: getHighlightRGBA(h.color || 'yellow', 0.35),
           borderRadius: '3px',
           mixBlendMode: 'multiply' as any,
-          boxShadow: '0 0 0 1px rgba(0,0,0,0.02) inset'
+          boxShadow: '0 0 0 0.5px rgba(0,0,0,0.03) inset'
         })
         overlay!.appendChild(el)
       })
     })
+    // Ensure overlay stays on top (append as last child each time)
+    containerEl.appendChild(overlay)
+  }
+  
+  // Duplicate removed (kept single definition above)
+
+  // Schedule overlay rendering with readiness checks and observers (robust for Chrome/large PDFs)
+  const scheduleOverlayRender = () => {
+    if (currentFormat !== 'pdf') return
+    const pageEl = containerRef.current?.querySelector(`.react-pdf__Page[data-page-number="${pageNumber}"]`) as HTMLElement | null
+    if (!pageEl) {
+      setTimeout(scheduleOverlayRender, 60)
+      return
+    }
+
+    const isReady = () => {
+      const canvasEl = pageEl.querySelector('canvas') as HTMLCanvasElement | null
+      const textLayer = pageEl.querySelector('.react-pdf__Page__textContent') as HTMLElement | null
+      const w = canvasEl?.clientWidth || pageEl.clientWidth
+      const h = canvasEl?.clientHeight || pageEl.clientHeight
+      return !!canvasEl && w > 0 && h > 0 && !!textLayer
+    }
+
+    // Disconnect previous observers
+    if (overlayResizeObserverRef.current) {
+      overlayResizeObserverRef.current.disconnect()
+      overlayResizeObserverRef.current = null
+    }
+    if (overlayMutationObserverRef.current) {
+      overlayMutationObserverRef.current.disconnect()
+      overlayMutationObserverRef.current = null
+    }
+
+    let attempts = 0
+    const maxAttempts = 30 // ~2s worst-case with 65ms step
+    const tryRender = () => {
+      attempts += 1
+      if (isReady()) {
+        renderOverlayHighlights()
+        // Observe size changes to keep overlay aligned
+        try {
+          const ro = new ResizeObserver(() => {
+            renderOverlayHighlights()
+          })
+          ro.observe(pageEl)
+          overlayResizeObserverRef.current = ro
+        } catch {}
+        // Observe subtree/style mutations shortly
+        try {
+          const mo = new MutationObserver(() => {
+            renderOverlayHighlights()
+          })
+          mo.observe(pageEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] })
+          overlayMutationObserverRef.current = mo
+          setTimeout(() => {
+            overlayMutationObserverRef.current?.disconnect()
+            overlayMutationObserverRef.current = null
+          }, 2000)
+        } catch {}
+        return
+      }
+      if (attempts < maxAttempts) {
+        setTimeout(tryRender, 65)
+      } else {
+        // Fallback: render anyway
+        renderOverlayHighlights()
+      }
+    }
+
+    // Kick off staggered schedule as well
+    renderOverlayHighlights()
+    requestAnimationFrame(() => renderOverlayHighlights())
+    ;[80, 160, 320, 640].forEach((d) => setTimeout(() => renderOverlayHighlights(), d))
+    tryRender()
   }
 
   // Render different ebook formats
@@ -1228,6 +1301,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         console.log('📄 PDF file URL:', fileContent)
         return (
           <ClientPDF
+            key={`client-pdf-${clientPdfKey}`}
             file={fileContent}
             options={documentOptions}
             loading={
@@ -1272,11 +1346,11 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
             onPageLoadSuccess={() => {
               console.log('Page loaded successfully:', pageNumber)
               setLoading(false)
-              // Render overlay after text/annotation layers settle
-              requestAnimationFrame(() => {
-                renderOverlayHighlights()
-                setTimeout(() => renderOverlayHighlights(), 80)
-              })
+              scheduleOverlayRender()
+              if (pageRenderWatchdogRef.current) {
+                window.clearTimeout(pageRenderWatchdogRef.current)
+                pageRenderWatchdogRef.current = null
+              }
             }}
             onPageLoadError={(error) => {
               if (error && typeof (error as any).message === 'string' && (error as any).message.includes('Transport destroyed')) {
@@ -1286,6 +1360,13 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
               console.error('Page loading failed:', error)
               setError('PDF page loading failed: ' + (error as any).message)
               setLoading(false)
+            }}
+            onPageRenderSuccess={() => {
+              scheduleOverlayRender()
+              if (pageRenderWatchdogRef.current) {
+                window.clearTimeout(pageRenderWatchdogRef.current)
+                pageRenderWatchdogRef.current = null
+              }
             }}
           />
         )
@@ -1884,6 +1965,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         ref={containerRef}
         className="flex-1 overflow-auto bg-gray-100 h-full reader-content"
         onMouseUp={handleTextSelectionEnhanced}
+        onDoubleClick={handleDoubleClick}
       >
         {/* Fullscreen hint */}
         {isFullscreen && !showUI && (
@@ -1898,32 +1980,7 @@ function EBookReaderComponent({ book, onClose }: EBookReaderProps) {
         {/* Touchpad gesture hint */}
         {/* Touchpad hint removed per request */}
         
-        {/* Zoom feedback indicator */}
-        <AnimatePresence>
-          {isZooming && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-80 text-white px-6 py-4 rounded-xl text-lg z-50 backdrop-blur-sm border border-white/20 shadow-2xl"
-            >
-              <div className="flex flex-col items-center space-y-2">
-                <motion.span 
-                  className="text-2xl"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 0.3, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  {scale > 1 ? '🔍' : scale < 1 ? '📏' : '📐'}
-                </motion.span>
-                <span className="font-bold">{Math.round(scale * 100)}%</span>
-                <span className="text-sm opacity-80">
-                  {scale > 1 ? '放大中...' : scale < 1 ? '缩小中...' : '原始大小'}
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Zoom feedback indicator disabled for immediate zoom */}
         <div className="flex justify-center">          {loading && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
